@@ -112,6 +112,7 @@ type RegistrationFormData = z.infer<typeof registrationSchema>;
 
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
+import { formatCNPJ, formatPhone, formatCEP, fetchAddressByCEP, isValidCNPJ } from '@/lib/validations';
 
 export function RegisterPage() {
   const [step, setStep] = useState(1);
@@ -119,14 +120,17 @@ export function RegisterPage() {
   const [isSuccess, setIsSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [globalError, setGlobalError] = useState<string | null>(null);
+  const [isValidatingDoc, setIsValidatingDoc] = useState(false);
+  const [isFetchingCep, setIsFetchingCep] = useState(false);
   const navigate = useNavigate();
 
-  const { register, trigger, getValues, setValue, watch, formState: { errors } } = useForm<RegistrationFormData>({
+  const { register, trigger, getValues, setValue, watch, setError, clearErrors, formState: { errors } } = useForm<RegistrationFormData>({
     resolver: zodResolver(registrationSchema),
     mode: 'onChange',
   });
 
   const passwordValue = watch('password', '');
+  const cepValue = watch('cep', '');
 
   const stepFields: Record<number, (keyof RegistrationFormData)[]> = {
     1: ['email', 'password', 'acceptTerms', 'acceptPrivacy'],
@@ -134,9 +138,40 @@ export function RegisterPage() {
     3: ['cep', 'logradouro', 'numero', 'complemento', 'bairro', 'cidade', 'estado'],
   };
 
+  React.useEffect(() => {
+     const handleCep = async () => {
+         const cepClean = cepValue?.replace(/\D/g, '');
+         if (cepClean && cepClean.length === 8 && !isFetchingCep) {
+             setIsFetchingCep(true);
+             const address = await fetchAddressByCEP(cepClean);
+             if (address) {
+                 setValue('logradouro', address.logradouro, { shouldValidate: true });
+                 setValue('bairro', address.bairro, { shouldValidate: true });
+                 setValue('cidade', address.cidade, { shouldValidate: true });
+                 setValue('estado', address.estado, { shouldValidate: true });
+                 document.getElementById('numero')?.focus();
+             } else {
+                 setError('cep', { type: 'manual', message: 'CEP não encontrado.' });
+             }
+             setIsFetchingCep(false);
+         }
+     }
+     handleCep();
+  }, [cepValue]);
+
   const handleNextStep = async () => {
     const fieldsToValidate = stepFields[step];
-    const isStepValid = await trigger(fieldsToValidate);
+    let isStepValid = await trigger(fieldsToValidate);
+    
+    // Validação profunda de CNPJ
+    if (step === 2 && isStepValid) {
+        const cnpjStr = getValues('cnpj')?.replace(/\D/g, '');
+        if (!isValidCNPJ(cnpjStr)) {
+            setError('cnpj', { type: 'manual', message: 'CNPJ inválido (Dígito verificador incorreto).' });
+            isStepValid = false;
+        }
+    }
+
     if (isStepValid) setStep((prev) => prev + 1);
   };
 
@@ -386,14 +421,25 @@ export function RegisterPage() {
                       <Label htmlFor="cnpj">CNPJ Institucional *</Label>
                       <Input 
                         id="cnpj" placeholder="00.000.000/0000-00"
-                        {...register('cnpj')} onChange={handleCnpjChange}
+                        {...register('cnpj')} 
+                        onChange={(e) => {
+                          e.target.value = formatCNPJ(e.target.value);
+                          register('cnpj').onChange(e);
+                        }}
                         className={errors.cnpj ? 'border-rose-300 bg-rose-50/50 focus-visible:ring-rose-500/20' : ''}
                       />
                       <ErrorMessage error={errors.cnpj?.message} />
                     </div>
                     <div>
                       <Label htmlFor="telefone">Telefone <span className="text-slate-400 font-normal lowercase">(Opcional)</span></Label>
-                      <Input id="telefone" placeholder="(00) 0000-0000" {...register('telefone')} />
+                      <Input 
+                        id="telefone" placeholder="(00) 0000-0000" 
+                        {...register('telefone')}
+                        onChange={(e) => {
+                          e.target.value = formatPhone(e.target.value);
+                          register('telefone').onChange(e);
+                        }}
+                      />
                     </div>
                   </div>
                 </div>
@@ -405,20 +451,26 @@ export function RegisterPage() {
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                     <div className="md:col-span-1">
                       <Label htmlFor="cep">CEP *</Label>
-                      <Input 
-                        id="cep" placeholder="00000-000"
-                        {...register('cep')} onBlur={handleCepBlur}
-                        className={errors.cep ? 'border-rose-300 bg-rose-50/50' : ''}
-                      />
+                      <div className="relative">
+                          <Input 
+                            id="cep" placeholder="00000-000"
+                            {...register('cep')} 
+                            onChange={(e) => {
+                                e.target.value = formatCEP(e.target.value);
+                                register('cep').onChange(e);
+                            }}
+                            className={errors.cep ? 'border-rose-300 bg-rose-50/50 pr-10' : 'pr-10'}
+                          />
+                          {isFetchingCep && (
+                              <Loader2 className="w-4 h-4 text-indigo-600 animate-spin absolute right-3 top-1/2 -translate-y-1/2" />
+                          )}
+                      </div>
                       <ErrorMessage error={errors.cep?.message} />
                     </div>
                     <div className="md:col-span-2">
-                      <Label htmlFor="logradouro">Logradouro *</Label>
-                      <Input 
-                        id="logradouro" {...register('logradouro')}
-                        className={errors.logradouro ? 'border-rose-300 bg-rose-50/50' : ''}
-                      />
-                      <ErrorMessage error={errors.logradouro?.message} />
+                       <Label htmlFor="logradouro">Rua / Logradouro</Label>
+                       <Input id="logradouro" {...register('logradouro')} className={errors.logradouro ? "border-rose-500 focus-visible:ring-rose-500/20" : ""} />
+                       <ErrorMessage error={errors.logradouro?.message} />
                     </div>
                   </div>
 

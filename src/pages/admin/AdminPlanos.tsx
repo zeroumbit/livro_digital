@@ -15,9 +15,36 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+
+// ============================================================================
+// HELPERS DE FORMATAÇÃO (REAL BRASILEIRO)
+// ============================================================================
+
+const formatBRValue = (val: any) => {
+  if (val === undefined || val === null || val === '') return '';
+  if (typeof val === 'string' && val.match(/[^\d,]/)) { // Se já tem formatação manual, deixa
+    return val;
+  }
+  const num = typeof val === 'string' ? parseBRValue(val) : val;
+  return new Intl.NumberFormat('pt-BR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 12, // Suporta alta precisão conforme solicitado
+  }).format(num);
+};
+
+const parseBRValue = (val: string) => {
+  if (typeof val === 'number') return val;
+  if (!val) return 0;
+  // Limpa tudo exceto números e a que seria a última vírgula (decimal)
+  // Remove pontos de milhar
+  let clean = val.replace(/\./g, '');
+  // Troca vírgula por ponto
+  clean = clean.replace(',', '.');
+  return parseFloat(clean) || 0;
+};
 
 // ============================================================================
 // SCHEMA DE VALIDAÇÃO (ZOD)
@@ -27,7 +54,10 @@ const planoSchema = z.object({
   id: z.string().optional(),
   nome: z.string().min(3, 'Mínimo de 3 caracteres'),
   descricao: z.string().min(10, 'Mínimo de 10 caracteres para a descrição comercial'),
-  valor_mensal: z.coerce.number().min(0, 'O valor não pode ser negativo'),
+  valor_mensal: z.preprocess((val) => {
+    if (typeof val === 'string') return parseBRValue(val);
+    return val;
+  }, z.number().min(0, 'O valor não pode ser negativo')),
   limite_usuarios: z.coerce.number().min(1, 'Mínimo de 1 usuário'),
   modulos_ativos: z.array(z.string()).min(1, 'Selecione pelo menos 1 módulo'),
   status: z.enum(['ativo', 'inativo'])
@@ -48,22 +78,16 @@ export function AdminPlanos() {
   const [selectedPlano, setSelectedPlano] = useState<any>(null);
   const [deleteConfirmationName, setDeleteConfirmationName] = useState('');
 
-  const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm<PlanoForm>({
+  const { register, handleSubmit, reset, setValue, watch, control, formState: { errors } } = useForm<PlanoForm>({
     resolver: zodResolver(planoSchema),
     defaultValues: {
       status: 'ativo',
-      modulos_ativos: ['ocorrencias']
+      modulos_ativos: ['ocorrencias'],
+      valor_mensal: '' as any
     }
   });
 
-  const modulosDisponiveis = [
-    { id: 'ocorrencias', label: 'Ocorrências' },
-    { id: 'veiculos', label: 'Veículos' },
-    { id: 'escalas', label: 'Escalas' },
-    { id: 'combustivel', label: 'Combustível' },
-    { id: 'cameras', label: 'Câmeras/LPR' },
-    { id: 'administrativo', label: 'Administrativo' },
-  ];
+  const [modulosDisponiveis, setModulosDisponiveis] = useState<any[]>([]);
 
   const fetchPlanos = async () => {
     setIsLoading(true);
@@ -73,8 +97,19 @@ export function AdminPlanos() {
     setIsLoading(false);
   };
 
+  const fetchDocumentacaoSistema = async () => {
+    const { data, error } = await supabase
+      .from('sistema_modulos')
+      .select('*, sistema_funcionalidades(*)')
+      .order('ordem', { ascending: true });
+    
+    if (error) console.error('Falha ao carregar configuração de módulos', error);
+    else setModulosDisponiveis(data || []);
+  };
+
   useEffect(() => {
     fetchPlanos();
+    fetchDocumentacaoSistema();
   }, []);
 
   const onSubmit = async (data: PlanoForm) => {
@@ -96,10 +131,13 @@ export function AdminPlanos() {
 
   const openEditModal = (plano: any) => {
     setSelectedPlano(plano);
-    Object.keys(plano).forEach(key => {
-        if (key in planoSchema.shape) {
-            setValue(key as any, plano[key]);
-        }
+    // Garantir que modulos_ativos seja um array
+    const modulosAtivos = Array.isArray(plano.modulos_ativos) ? plano.modulos_ativos : [];
+    
+    reset({
+      ...plano,
+      valor_mensal: plano.valor_mensal?.toString()?.replace('.', ','),
+      modulos_ativos: modulosAtivos
     });
     setIsModalOpen(true);
   };
@@ -191,15 +229,18 @@ export function AdminPlanos() {
             <p className="text-slate-500 text-sm font-medium line-clamp-2 mb-6">{plano.descricao}</p>
 
             <div className="flex items-baseline mb-8">
-                <span className="text-3xl font-black text-slate-900">R$ {plano.valor_mensal.toFixed(2)}</span>
+                <span className="text-3xl font-black text-slate-900">R$ {formatBRValue(plano.valor_mensal)}</span>
                 <span className="ml-2 text-slate-400 font-bold text-xs uppercase">/ mês</span>
             </div>
 
             <div className="space-y-3 mb-10 flex-1">
                 <FeatureItem label={`Limite: ${plano.limite_usuarios} usuários`} />
-                {plano.modulos_ativos?.map((m: string) => (
+                {plano.modulos_ativos?.filter((m: string) => !m.includes('_')).map((m: string) => (
                     <FeatureItem key={m} label={m.charAt(0).toUpperCase() + m.slice(1)} />
                 ))}
+                {plano.modulos_ativos?.some((m: string) => m.includes('_')) && (
+                  <p className="text-[10px] text-slate-400 font-bold uppercase mt-2 ml-7">+ Funcionalidades específicas</p>
+                )}
             </div>
 
             <button onClick={() => openEditModal(plano)} className="w-full py-4 bg-slate-50 text-slate-500 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-900 hover:text-white transition-all">
@@ -225,7 +266,24 @@ export function AdminPlanos() {
                             <input {...register('nome')} className="w-full h-12 bg-slate-50 border-none rounded-xl px-4 text-sm font-bold outline-none ring-offset-2 focus:ring-2 focus:ring-indigo-600" />
                         </InputGroup>
                         <InputGroup label="Valor Mensal (R$)" error={errors.valor_mensal?.message}>
-                            <input {...register('valor_mensal')} type="number" step="0.01" className="w-full h-12 bg-slate-50 border-none rounded-xl px-4 text-sm font-bold outline-none focus:ring-2 focus:ring-indigo-600" />
+                                <Controller
+                                    name="valor_mensal"
+                                    control={control}
+                                    render={({ field: { onChange, value } }) => (
+                                        <input 
+                                            type="text"
+                                            placeholder="0,00"
+                                            value={value ?? ''}
+                                            onChange={(e) => {
+                                                // Permissão total: o usuário digita exatamente o que deseja
+                                                // Apenas removemos caracteres que não são números, ponto ou vírgula
+                                                const val = e.target.value.replace(/[^\d,.]/g, '');
+                                                onChange(val);
+                                            }}
+                                            className="w-full h-12 bg-slate-50 border-none rounded-xl px-4 text-sm font-bold outline-none focus:ring-2 focus:ring-indigo-600 font-mono" 
+                                        />
+                                    )}
+                                />
                         </InputGroup>
                     </div>
 
@@ -245,13 +303,44 @@ export function AdminPlanos() {
                         </InputGroup>
                     </div>
 
-                    <InputGroup label="Módulos Liberados" error={errors.modulos_ativos?.message}>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                            {modulosDisponiveis.map(m => (
-                                <label key={m.id} className="flex items-center p-3 bg-slate-50 rounded-xl cursor-pointer hover:bg-indigo-50 transition-colors">
-                                    <input type="checkbox" value={m.id} {...register('modulos_ativos')} className="w-4 h-4 rounded-md border-slate-300 text-indigo-600 focus:ring-indigo-600 mr-2" />
-                                    <span className="text-[11px] font-black uppercase text-slate-600">{m.label}</span>
-                                </label>
+                    <InputGroup label="Módulos e Funcionalidades" error={errors.modulos_ativos?.message}>
+                        <div className="space-y-6 max-h-[400px] overflow-y-auto pr-4 custom-scrollbar">
+                            {modulosDisponiveis.map((modulo) => (
+                                <div key={modulo.id} className="bg-slate-50 rounded-3xl p-6 border border-slate-100">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <div className="flex items-center">
+                                            <div className="w-8 h-8 bg-white rounded-xl flex items-center justify-center shadow-sm mr-3">
+                                                 <Layers className="w-4 h-4 text-indigo-600" />
+                                            </div>
+                                            <div>
+                                                <h4 className="text-sm font-black text-slate-900">{modulo.nome}</h4>
+                                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{modulo.chave}</p>
+                                            </div>
+                                        </div>
+                                        <input 
+                                            type="checkbox" 
+                                            value={modulo.chave} 
+                                            {...register('modulos_ativos')}
+                                            className="w-5 h-5 rounded-lg border-slate-300 text-indigo-600 focus:ring-indigo-600" 
+                                        />
+                                    </div>
+                                    
+                                    {modulo.sistema_funcionalidades && modulo.sistema_funcionalidades.length > 0 && (
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-4 pt-4 border-t border-slate-200/60">
+                                            {modulo.sistema_funcionalidades.map((feat: any) => (
+                                                <label key={feat.id} className="flex items-center p-3 bg-white/50 rounded-xl cursor-pointer hover:bg-white transition-all border border-transparent hover:border-slate-200">
+                                                    <input 
+                                                        type="checkbox" 
+                                                        value={feat.chave} 
+                                                        {...register('modulos_ativos')}
+                                                        className="w-4 h-4 rounded-md border-slate-300 text-indigo-600 focus:ring-indigo-600 mr-3" 
+                                                    />
+                                                    <span className="text-[11px] font-bold text-slate-600">{feat.nome}</span>
+                                                </label>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
                             ))}
                         </div>
                     </InputGroup>

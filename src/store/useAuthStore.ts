@@ -42,64 +42,76 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   setIsLoading: (loading) => set({ isLoading: loading }),
   
   initialize: async () => {
+    // Evitar múltiplas inicializações se já estiver carregando ou logado
+    if (get().user && !get().isLoading) return;
+
     const { data: { session } } = await supabase.auth.getSession();
     const user = session?.user ?? null;
     
-    set({ user, isLoading: !!user }); // Se tem user, fica em loading enquanto busca perfil
-
-    if (user) {
-      // Buscar perfil estendido
-      const { data: profile, error: profileError } = await supabase
+    const fetchFullProfile = async (uid: string) => {
+      const { data: profile } = await supabase
         .from('usuarios')
         .select('*')
-        .eq('id', user.id)
+        .eq('id', uid)
         .single();
-      
-      if (profileError) {
-        console.error('ERRO CRÍTICO AO BUSCAR PERFIL:', profileError);
-      }
       
       set({ profile });
 
       if (profile?.instituicao_id) {
-        // Buscar dados da instituição
         const { data: institution } = await supabase
           .from('instituicoes')
-          .select('*')
+          .select('*, planos(*)')
           .eq('id', profile.instituicao_id)
           .single();
         
         set({ institution });
+        return { profile, institution };
+      }
+      return { profile, institution: null };
+    };
+
+    set({ user, isLoading: !!user });
+
+    if (user) {
+      await fetchFullProfile(user.id);
+      
+      // REALTIME: Escutar mudanças no perfil do usuário (Singleton por sessão)
+      const profileChannel = `profile-${user.id}`;
+      if (!supabase.getChannels().find(c => c.topic === `realtime:${profileChannel}`)) {
+          supabase
+            .channel(profileChannel)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'usuarios', filter: `id=eq.${user.id}` }, 
+              () => fetchFullProfile(user.id)
+            ).subscribe();
+      }
+
+      // REALTIME: Escutar mudanças na instituição
+      const userProfile = get().profile;
+      if (userProfile?.instituicao_id) {
+        const instChannel = `inst-${userProfile.instituicao_id}`;
+        if (!supabase.getChannels().find(c => c.topic === `realtime:${instChannel}`)) {
+            supabase
+              .channel(instChannel)
+              .on('postgres_changes', { event: '*', schema: 'public', table: 'instituicoes', filter: `id=eq.${userProfile.instituicao_id}` }, 
+                () => fetchFullProfile(user.id)
+              ).subscribe();
+        }
       }
     }
     
     set({ isLoading: false });
 
-    // Listen for changes
-    supabase.auth.onAuthStateChange(async (_event, session) => {
+    // Listen for Auth changes
+    supabase.auth.onAuthStateChange(async (event, session) => {
       const newUser = session?.user ?? null;
-      if (newUser?.id !== get().user?.id) {
-        set({ user: newUser, isLoading: !!newUser });
-        if (newUser) {
-          const { data: profile } = await supabase
-            .from('usuarios')
-            .select('*')
-            .eq('id', newUser.id)
-            .single();
-          set({ profile });
-
-          if (profile?.instituicao_id) {
-            const { data: institution } = await supabase
-              .from('instituicoes')
-              .select('*')
-              .eq('id', profile.instituicao_id)
-              .single();
-            set({ institution });
-          }
-        } else {
-          set({ profile: null, institution: null });
-        }
+      if (event === 'SIGNED_IN' && newUser) {
+        set({ user: newUser, isLoading: true });
+        await fetchFullProfile(newUser.id);
         set({ isLoading: false });
+      } else if (event === 'SIGNED_OUT') {
+          // Limpar todos os canais ao sair
+          supabase.removeAllChannels();
+          set({ user: null, profile: null, institution: null, isLoading: false });
       }
     });
   },
