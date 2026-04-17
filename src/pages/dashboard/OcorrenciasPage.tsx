@@ -18,7 +18,8 @@ import {
   ChevronRight,
   Zap,
   Shield,
-  Phone
+  Phone,
+  FileText
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/useAuthStore';

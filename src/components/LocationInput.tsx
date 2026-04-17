@@ -9,6 +9,8 @@ interface LocationInputProps {
     rua: string;
     bairro: string;
     cep: string;
+    cidade: string;
+    estado: string;
     numero?: string;
     coordenadas?: string;
   }) => void;
@@ -23,6 +25,8 @@ export function LocationInput({ onLocationChange, defaultValues }: LocationInput
   const [cep, setCep] = useState(defaultValues?.cep || '');
   const [rua, setRua] = useState(defaultValues?.rua || '');
   const [bairro, setBairro] = useState(defaultValues?.bairro || '');
+  const [cidade, setCidade] = useState(defaultValues?.cidade || '');
+  const [estado, setEstado] = useState(defaultValues?.estado || '');
   const [numero, setNumero] = useState(defaultValues?.numero || '');
   const [coordenadas, setCoordenadas] = useState(defaultValues?.coordenadas || '');
 
@@ -46,7 +50,9 @@ export function LocationInput({ onLocationChange, defaultValues }: LocationInput
     if (data) {
       setRua(data.rua || '');
       setBairro(data.bairro || '');
-      updateParent(data.rua || '', data.bairro || '', cep, numero, coordenadas);
+      setCidade(data.cidade || '');
+      setEstado(data.estado || '');
+      updateParent(data.rua || '', data.bairro || '', cep, data.cidade || '', data.estado || '', numero, coordenadas);
     }
   };
 
@@ -70,13 +76,17 @@ export function LocationInput({ onLocationChange, defaultValues }: LocationInput
         
         const street = data.address.road || data.address.pedestrian || '';
         const neighborhood = data.address.suburb || data.address.neighbourhood || data.address.city_district || '';
+        const city = data.address.city || data.address.town || data.address.village || '';
+        const state = data.address.state || '';
         const postCode = data.address.postcode || '';
 
         setRua(street);
         setBairro(neighborhood);
+        setCidade(city);
+        setEstado(state);
         if (postCode) setCep(postCode);
         
-        updateParent(street, neighborhood, postCode || cep, numero, coordsString);
+        updateParent(street, neighborhood, postCode || cep, city, state, numero, coordsString);
       } catch (error) {
         console.error('Erro no Reverse Geocoding:', error);
       } finally {
@@ -89,8 +99,8 @@ export function LocationInput({ onLocationChange, defaultValues }: LocationInput
     });
   };
 
-  const updateParent = (r: string, b: string, c: string, n: string, co: string) => {
-    onLocationChange({ rua: r, bairro: b, cep: c, numero: n, coordenadas: co });
+  const updateParent = (r: string, b: string, c: string, city: string, state: string, n: string, co: string) => {
+    onLocationChange({ rua: r, bairro: b, cep: c, cidade: city, estado: state, numero: n, coordenadas: co });
   };
 
   return (
@@ -102,6 +112,7 @@ export function LocationInput({ onLocationChange, defaultValues }: LocationInput
             <input
               type="text"
               value={cep}
+              maxLength={9}
               onChange={(e) => {
                 setCep(e.target.value);
                 updateParent(rua, bairro, e.target.value, numero, coordenadas);
@@ -175,6 +186,35 @@ export function LocationInput({ onLocationChange, defaultValues }: LocationInput
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Navigation className="w-4 h-4" />}
             Obter Localização via GPS
           </button>
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="md:col-span-2 space-y-2">
+          <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Cidade</label>
+          <input
+            type="text"
+            value={cidade}
+            onChange={(e) => {
+              setCidade(e.target.value);
+              updateParent(rua, bairro, cep, e.target.value, estado, numero, coordenadas);
+            }}
+            placeholder="Cidade"
+            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-600/20 focus:border-indigo-600 outline-none transition-all"
+          />
+        </div>
+        <div className="md:col-span-1 space-y-2">
+          <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Estado (UF)</label>
+          <input
+            type="text"
+            value={estado}
+            onChange={(e) => {
+              setEstado(e.target.value);
+              updateParent(rua, bairro, cep, cidade, e.target.value, numero, coordenadas);
+            }}
+            placeholder="UF"
+            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-600/20 focus:border-indigo-600 outline-none transition-all"
+          />
         </div>
       </div>
       

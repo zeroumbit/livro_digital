@@ -45,6 +45,8 @@ const ocorrenciaSchema = z.object({
   natureza: z.array(z.string()).min(1, 'Selecione pelo menos uma natureza'),
   rua: z.string().min(1, 'Rua é obrigatória'),
   bairro: z.string().min(1, 'Bairro é obrigatório'),
+  cidade: z.string().optional(),
+  estado: z.string().optional(),
   numero: z.string().optional(),
   cep: z.string().optional(),
   ponto_referencia: z.string().optional(),
@@ -142,6 +144,8 @@ export function OcorrenciaMultiStepForm({ onClose, onSuccess, initialData }: Pro
       rua: data.rua || 'Pendente',
       numero: data.numero || '',
       bairro: data.bairro || 'Pendente',
+      cidade: data.cidade || '',
+      estado: data.estado || '',
       referencia: data.ponto_referencia || '',
       coordenadas: data.coordenadas || '',
     };
@@ -189,6 +193,8 @@ export function OcorrenciaMultiStepForm({ onClose, onSuccess, initialData }: Pro
         rua: data.rua || 'Pendente',
         numero: data.numero || '',
         bairro: data.bairro || 'Pendente',
+        cidade: data.cidade || '',
+        estado: data.estado || '',
         referencia: data.ponto_referencia || '',
         coordenadas: data.coordenadas || '',
       };
