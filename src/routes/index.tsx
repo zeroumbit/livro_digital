@@ -21,6 +21,7 @@ import { AssinaturaPage } from '@/pages/dashboard/AssinaturaPage';
 import { VeiculosPage } from '@/pages/dashboard/VeiculosPage';
 import { OcorrenciasPage } from '@/pages/dashboard/OcorrenciasPage';
 import { ConfiguracoesPage } from '@/pages/dashboard/ConfiguracoesPage';
+import { ChamadosPage } from '@/pages/dashboard/ChamadosPage';
 
 export const router = createBrowserRouter([
   {
@@ -96,7 +97,7 @@ export const router = createBrowserRouter([
       },
       {
         path: '/chamados',
-        element: <div className="p-8"><h1 className="text-3xl font-black">Central de Chamados</h1></div>,
+        element: <ChamadosPage />,
       },
       {
         path: '/ocorrencias/embriaguez',

@@ -112,7 +112,9 @@ type RegistrationFormData = z.infer<typeof registrationSchema>;
 
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
-import { formatCNPJ, formatPhone, formatCEP, fetchAddressByCEP, isValidCNPJ } from '@/lib/validations';
+import { formatCNPJ, formatPhone, formatCEP, isValidCNPJ } from '@/lib/validations';
+import { fetchCEP, fetchCNPJ } from '@/lib/api-services';
+import { toast } from 'sonner';
 
 export function RegisterPage() {
   const [step, setStep] = useState(1);
@@ -124,6 +126,12 @@ export function RegisterPage() {
   const [isFetchingCep, setIsFetchingCep] = useState(false);
   const navigate = useNavigate();
 
+  const stepFields: Record<number, (keyof RegistrationFormData)[]> = {
+    1: ['email', 'password', 'acceptTerms', 'acceptPrivacy'],
+    2: ['razaoSocial', 'cnpj', 'telefone'],
+    3: ['cep', 'logradouro', 'numero', 'complemento', 'bairro', 'cidade', 'estado'],
+  };
+
   const { register, trigger, getValues, setValue, watch, setError, clearErrors, formState: { errors } } = useForm<RegistrationFormData>({
     resolver: zodResolver(registrationSchema),
     mode: 'onChange',
@@ -131,21 +139,41 @@ export function RegisterPage() {
 
   const passwordValue = watch('password', '');
   const cepValue = watch('cep', '');
+  const cnpjValue = watch('cnpj', '');
 
-  const stepFields: Record<number, (keyof RegistrationFormData)[]> = {
-    1: ['email', 'password', 'acceptTerms', 'acceptPrivacy'],
-    2: ['razaoSocial', 'cnpj', 'telefone'],
-    3: ['cep', 'logradouro', 'numero', 'complemento', 'bairro', 'cidade', 'estado'],
-  };
+  // Auto-fill CNPJ logic
+  React.useEffect(() => {
+    const handleCnpj = async () => {
+      const cleanCnpj = cnpjValue?.replace(/\D/g, '');
+      if (cleanCnpj && cleanCnpj.length === 14 && !isValidatingDoc) {
+        setIsValidatingDoc(true);
+        const data = await fetchCNPJ(cleanCnpj);
+        if (data) {
+          setValue('razaoSocial', data.razao_social, { shouldValidate: true });
+          // If we want to pre-fill address too
+          setValue('cep', data.cep, { shouldValidate: true });
+          setValue('logradouro', data.rua, { shouldValidate: true });
+          setValue('bairro', data.bairro, { shouldValidate: true });
+          setValue('cidade', data.cidade, { shouldValidate: true });
+          setValue('estado', data.estado, { shouldValidate: true });
+          setValue('numero', data.numero, { shouldValidate: true });
+          toast.success('Dados da empresa carregados automaticamente!');
+        }
+        setIsValidatingDoc(false);
+      }
+    };
+    handleCnpj();
+  }, [cnpjValue]);
 
+  // Auto-fill CEP logic
   React.useEffect(() => {
      const handleCep = async () => {
          const cepClean = cepValue?.replace(/\D/g, '');
          if (cepClean && cepClean.length === 8 && !isFetchingCep) {
              setIsFetchingCep(true);
-             const address = await fetchAddressByCEP(cepClean);
+             const address = await fetchCEP(cepClean);
              if (address) {
-                 setValue('logradouro', address.logradouro, { shouldValidate: true });
+                 setValue('logradouro', address.rua, { shouldValidate: true });
                  setValue('bairro', address.bairro, { shouldValidate: true });
                  setValue('cidade', address.cidade, { shouldValidate: true });
                  setValue('estado', address.estado, { shouldValidate: true });
@@ -227,31 +255,10 @@ export function RegisterPage() {
     }
   };
 
-  const handleCepBlur = async (e: React.FocusEvent<HTMLInputElement>) => {
-    const cep = e.target.value.replace(/\D/g, '');
-    if (cep.length === 8) {
-      try {
-        const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
-        const data = await response.json();
-        if (!data.erro) {
-          setValue('logradouro', data.logradouro, { shouldValidate: true });
-          setValue('bairro', data.bairro, { shouldValidate: true });
-          setValue('cidade', data.localidade, { shouldValidate: true });
-          setValue('estado', data.uf, { shouldValidate: true });
-        }
-      } catch (error) {
-        console.error('Erro ao buscar CEP', error);
-      }
-    }
-  };
-
   const handleCnpjChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value.replace(/\D/g, '');
     if (value.length > 14) value = value.slice(0, 14);
-    value = value.replace(/^(\d{2})(\d)/, '$1.$2');
-    value = value.replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3');
-    value = value.replace(/\.(\d{3})(\d)/, '.$1/$2');
-    value = value.replace(/(\d{4})(\d)/, '$1-$2');
+    value = formatCNPJ(value);
     setValue('cnpj', value, { shouldValidate: true });
   };
 
