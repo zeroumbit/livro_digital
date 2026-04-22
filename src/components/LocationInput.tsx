@@ -56,6 +56,31 @@ export function LocationInput({ onLocationChange, defaultValues }: LocationInput
     }
   };
 
+  const formatCep = (value: string) => {
+    const digits = value.replace(/\D/g, '');
+    if (digits.length <= 5) return digits;
+    if (digits.length <= 8) return `${digits.slice(0, 5)}-${digits.slice(5)}`;
+    return `${digits.slice(0, 5)}-${digits.slice(5, 8)}`;
+  };
+
+  const handleCepChange = async (value: string) => {
+    const formatted = formatCep(value);
+    setCep(formatted);
+    const digits = value.replace(/\D/g, '');
+    if (digits.length === 8) {
+      setLoading(true);
+      const data = await fetchCEP(digits);
+      if (data) {
+        setRua(data.rua || '');
+        setBairro(data.bairro || '');
+        setCidade(data.cidade || '');
+        setEstado(data.estado || '');
+        updateParent(data.rua || '', data.bairro || '', formatted, data.cidade || '', data.estado || '', numero, coordenadas);
+      }
+      setLoading(false);
+    }
+  };
+
   const handleGPS = () => {
     if (!navigator.geolocation) {
       alert('Geolocalização não suportada pelo seu navegador.');
@@ -113,10 +138,7 @@ export function LocationInput({ onLocationChange, defaultValues }: LocationInput
               type="text"
               value={cep}
               maxLength={9}
-              onChange={(e) => {
-                setCep(e.target.value);
-                updateParent(rua, bairro, e.target.value, numero, coordenadas);
-              }}
+              onChange={(e) => handleCepChange(e.target.value)}
               onBlur={handleCepBlur}
               placeholder="00000-000"
               className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-600/20 focus:border-indigo-600 outline-none transition-all"

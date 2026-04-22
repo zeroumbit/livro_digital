@@ -468,24 +468,39 @@ export function OcorrenciaMultiStepForm({ onClose, onSuccess, initialData }: Pro
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                       <div className="space-y-2">
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">CPF / CNPJ</label>
-                        <input 
-                          {...register(`envolvidos.${index}.cpf`)}
-                          placeholder="000.000.000-00"
-                          onBlur={async (e) => {
-                            const val = e.target.value.replace(/\D/g, '');
-                            if (val.length === 11) {
-                              if (!validateCPF(val)) toast.error('CPF Inválido');
-                            } else if (val.length === 14) {
-                              const data = await fetchCNPJ(val);
-                              if (data) {
-                                setValue(`envolvidos.${index}.nome_completo`, data.razao_social);
-                                setValue(`envolvidos.${index}.observacoes`, `Empresa: ${data.nome_fantasia || data.razao_social}`);
-                                toast.success('Dados da empresa carregados!');
+                        <div className="relative">
+                          <input 
+                            {...register(`envolvidos.${index}.cpf`)}
+                            placeholder="000.000.000-00 ou 00.000.000/0000-00"
+                            maxLength={18}
+                            onChange={async (e) => {
+                              const val = e.target.value.replace(/\D/g, '');
+                              if (val.length === 11) {
+                                if (!validateCPF(val)) {
+                                  e.target.classList.add('border-red-400');
+                                  e.target.classList.remove('border-emerald-400');
+                                } else {
+                                  e.target.classList.add('border-emerald-400');
+                                  e.target.classList.remove('border-red-400');
+                                }
+                              } else if (val.length === 14) {
+                                e.target.classList.remove('border-red-400', 'border-emerald-400');
+                                const data = await fetchCNPJ(val);
+                                if (data) {
+                                  setValue(`envolvidos.${index}.nome_completo`, data.razao_social);
+                                  setValue(`envolvidos.${index}.observacoes`, `Empresa: ${data.nome_fantasia || data.razao_social}`);
+                                  e.target.classList.add('border-emerald-400');
+                                  toast.success('Dados da empresa carregados!');
+                                } else {
+                                  e.target.classList.add('border-red-400');
+                                }
+                              } else {
+                                e.target.classList.remove('border-red-400', 'border-emerald-400');
                               }
-                            }
-                          }}
-                          className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-600/10 outline-none"
-                        />
+                            }}
+                            className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-600/10 outline-none transition-all"
+                          />
+                        </div>
                       </div>
                       <div className="space-y-2">
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">RG</label>
