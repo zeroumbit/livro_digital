@@ -7,10 +7,14 @@ import App from './App.tsx';
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 60 * 1000,
+      staleTime: 1000 * 60 * 10, // 10 minutos de dados "frescos"
+      gcTime: 1000 * 60 * 30,    // 30 minutos em memória
+      retry: 1,
+      refetchOnWindowFocus: false,
     },
   },
 });
+
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

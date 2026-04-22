@@ -97,7 +97,7 @@ export function NaturezaSelector({ selected, onChange }: NaturezaSelectorProps) 
                 key={item}
                 type="button"
                 onClick={() => toggleNatureza(item)}
-                className={`px-4 py-2.5 rounded-xl text-[10px] font-bold text-left transition-all border leading-tight ${
+                className={`px-4 py-3 rounded-xl text-sm font-bold text-left transition-all border leading-tight ${
                   selected.includes(item)
                     ? 'bg-indigo-600 border-indigo-600 text-white shadow-md shadow-indigo-600/20'
                     : 'bg-white border-slate-200 text-slate-600 hover:border-indigo-600/50 hover:bg-slate-50'

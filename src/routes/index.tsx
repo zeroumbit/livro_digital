@@ -1,27 +1,28 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { lazy } from 'react';
 import { AuthLayout } from '@/layouts/AuthLayout';
 import { DashboardLayout } from '@/layouts/DashboardLayout';
 import SuperAdminLayout from '@/layouts/SuperAdminLayout';
 
-// Páginas (Criaremos os esqueletos a seguir)
-import { LoginPage } from '@/pages/auth/LoginPage';
-import { RegisterPage } from '@/pages/auth/RegisterPage';
-import { SetupWizard } from '@/pages/onboarding/SetupWizard';
+// Páginas com Lazy Loading
+const LoginPage = lazy(() => import('@/pages/auth/LoginPage').then(m => ({ default: m.LoginPage })));
+const RegisterPage = lazy(() => import('@/pages/auth/RegisterPage').then(m => ({ default: m.RegisterPage })));
+const SetupWizard = lazy(() => import('@/pages/onboarding/SetupWizard').then(m => ({ default: m.SetupWizard })));
 
-import { AdminDashboard } from '@/pages/admin/AdminDashboard';
-import { AdminInstituicoes } from '@/pages/admin/AdminInstituicoes';
-import { AdminPlanos } from '@/pages/admin/AdminPlanos';
-import { AdminAssinaturas } from '@/pages/admin/AdminAssinaturas';
-import { AdminAuditoria } from '@/pages/admin/AdminAuditoria';
-import { AdminConfiguracoes } from '@/pages/admin/AdminConfiguracoes';
+const AdminDashboard = lazy(() => import('@/pages/admin/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
+const AdminInstituicoes = lazy(() => import('@/pages/admin/AdminInstituicoes').then(m => ({ default: m.AdminInstituicoes })));
+const AdminPlanos = lazy(() => import('@/pages/admin/AdminPlanos').then(m => ({ default: m.AdminPlanos })));
+const AdminAssinaturas = lazy(() => import('@/pages/admin/AdminAssinaturas').then(m => ({ default: m.AdminAssinaturas })));
+const AdminAuditoria = lazy(() => import('@/pages/admin/AdminAuditoria').then(m => ({ default: m.AdminAuditoria })));
+const AdminConfiguracoes = lazy(() => import('@/pages/admin/AdminConfiguracoes').then(m => ({ default: m.AdminConfiguracoes })));
 
-import { DashboardGestor } from '@/pages/dashboard/DashboardGestor';
-import { EquipesPage } from '@/pages/dashboard/EquipesPage';
-import { AssinaturaPage } from '@/pages/dashboard/AssinaturaPage';
-import { VeiculosPage } from '@/pages/dashboard/VeiculosPage';
-import { OcorrenciasPage } from '@/pages/dashboard/OcorrenciasPage';
-import { ConfiguracoesPage } from '@/pages/dashboard/ConfiguracoesPage';
-import { ChamadosPage } from '@/pages/dashboard/ChamadosPage';
+const DashboardGestor = lazy(() => import('@/pages/dashboard/DashboardGestor').then(m => ({ default: m.DashboardGestor })));
+const EquipesPage = lazy(() => import('@/pages/dashboard/EquipesPage').then(m => ({ default: m.EquipesPage })));
+const AssinaturaPage = lazy(() => import('@/pages/dashboard/AssinaturaPage').then(m => ({ default: m.AssinaturaPage })));
+const VeiculosPage = lazy(() => import('@/pages/dashboard/VeiculosPage').then(m => ({ default: m.VeiculosPage })));
+const OcorrenciasPage = lazy(() => import('@/pages/dashboard/OcorrenciasPage').then(m => ({ default: m.OcorrenciasPage })));
+const ConfiguracoesPage = lazy(() => import('@/pages/dashboard/ConfiguracoesPage').then(m => ({ default: m.ConfiguracoesPage })));
+const ChamadosPage = lazy(() => import('@/pages/dashboard/ChamadosPage').then(m => ({ default: m.ChamadosPage })));
 
 export const router = createBrowserRouter([
   {
@@ -198,3 +199,4 @@ export const router = createBrowserRouter([
     </div>,
   },
 ]);
+

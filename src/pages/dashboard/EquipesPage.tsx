@@ -82,7 +82,7 @@ export function EquipesPage() {
         {members.map((member) => (
           <div key={member.id} className="bg-white p-6 rounded-[2.5rem] border border-slate-200 shadow-sm hover:shadow-xl hover:shadow-indigo-600/5 transition-all duration-500 group relative overflow-hidden">
             
-            <div className="absolute top-0 right-0 p-6 opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="absolute top-0 right-0 p-6">
                 <button className="p-2 hover:bg-slate-50 rounded-xl text-slate-400">
                     <MoreVertical className="w-5 h-5" />
                 </button>

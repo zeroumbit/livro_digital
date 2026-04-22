@@ -17,8 +17,12 @@ import {
   Users,
   Image as ImageIcon,
   Loader2,
-  Info
+  Info,
+  AlertCircle,
+  Zap
 } from 'lucide-react';
+
+
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/useAuthStore';
 import { NaturezaSelector } from '../NaturezaSelector';
@@ -568,7 +572,7 @@ export function OcorrenciaMultiStepForm({ onClose, onSuccess, initialData }: Pro
                     <button 
                       type="button"
                       onClick={() => setPhotos(prev => prev.filter((_, i) => i !== index))}
-                      className="absolute top-2 right-2 p-2 bg-red-600 text-white rounded-xl opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="absolute top-2 right-2 p-2 bg-red-600 text-white rounded-xl"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>

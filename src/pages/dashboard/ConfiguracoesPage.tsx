@@ -244,7 +244,7 @@ export function ConfiguracoesPage() {
                                     <span className="text-sm font-bold text-slate-700">{b.nome}</span>
                                     <button 
                                         onClick={() => handleDeleteBairro(b.id)}
-                                        className="p-2 text-slate-300 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-all"
+                                        className="p-2 text-slate-300 hover:text-rose-500"
                                     >
                                         <Trash2 className="w-4 h-4" />
                                     </button>

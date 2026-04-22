@@ -185,7 +185,7 @@ export function VeiculosPage() {
                 <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${veiculo.status === 'em_manutencao' ? 'bg-amber-50 text-amber-500' : veiculo.status === 'inativo' ? 'bg-slate-100 text-slate-400' : 'bg-indigo-50 text-indigo-600'}`}>
                     {getVeiculoIcon(veiculo.tipo_veiculo)}
                 </div>
-                <div className="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="flex items-center space-x-2">
                     <button onClick={() => openEditModal(veiculo)} className="p-2 bg-slate-50 text-slate-400 rounded-xl hover:text-indigo-600 transition-colors">
                         <Settings className="w-4 h-4" />
                     </button>

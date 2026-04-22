@@ -16,6 +16,7 @@ import {
   Users,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
+import { OriginalLoader } from '@/components/ui/OriginalLoader';
 
 // ============================================================================
 // CONFIGURAÇÃO DE MENUS DO SUPER ADMIN (Gestão do SaaS)
@@ -101,14 +102,7 @@ export default function SuperAdminLayout() {
 
   // Enquanto carrega o perfil, mostramos o mesmo loading elegante do Dashboard
   if (isLoading) {
-    return (
-        <div className="flex h-screen items-center justify-center bg-[#0F172A]">
-          <div className="flex flex-col items-center">
-            <div className="w-10 h-10 border-4 border-blue-600/20 border-t-blue-600 rounded-full animate-spin mb-4"></div>
-            <p className="text-blue-400 font-bold text-xs uppercase tracking-widest">Verificando Credenciais SaaS...</p>
-          </div>
-        </div>
-    );
+    return <OriginalLoader />;
   }
 
   // Proteção de Rota: Se não houver perfil ou não for admin, bloqueia imediatamente

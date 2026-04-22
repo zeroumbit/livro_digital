@@ -33,10 +33,33 @@ import {
 } from 'recharts';
 
 // ============================================================================
-// COMPONENTES DE APOIO (UI Premium)
+// CONSTANTES E DADOS ESTÁTICOS (Fora do ciclo de renderização para performance)
 // ============================================================================
 
-const StatCard = ({ title, value, subValue, icon: Icon, color }: any) => (
+const CHART_DATA = [
+  { name: 'Seg', valor: 40 },
+  { name: 'Ter', valor: 30 },
+  { name: 'Qua', valor: 65 },
+  { name: 'Qui', valor: 45 },
+  { name: 'Sex', valor: 90 },
+  { name: 'Sab', valor: 110 },
+  { name: 'Dom', valor: 85 },
+];
+
+const PIE_DATA = [
+  { name: 'Trânsito', value: 400 },
+  { name: 'Apoio', value: 300 },
+  { name: 'Patrimonial', value: 300 },
+  { name: 'Escolta', value: 200 },
+];
+
+const COLORS = ['#4F46E5', '#10B981', '#F59E0B', '#F43F5E'];
+
+// ============================================================================
+// COMPONENTES DE APOIO (UI Premium com Memoização)
+// ============================================================================
+
+const StatCard = React.memo(({ title, value, subValue, icon: Icon, color }: any) => (
   <div className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm hover:shadow-xl transition-all duration-500 group relative overflow-hidden">
     <div className={`absolute top-0 right-0 w-32 h-32 bg-${color}-500/5 rounded-full blur-3xl -mr-10 -mt-10 group-hover:scale-110 transition-transform duration-700`}></div>
     <div className="flex items-start justify-between relative z-10">
@@ -50,9 +73,9 @@ const StatCard = ({ title, value, subValue, icon: Icon, color }: any) => (
       </div>
     </div>
   </div>
-);
+));
 
-const ActivityItem = ({ title, time, type }: any) => {
+const ActivityItem = React.memo(({ title, time, type }: any) => {
   const icons: any = {
     ocorrencia: { icon: FileText, color: 'indigo' },
     equipe: { icon: Users, color: 'emerald' },
@@ -73,39 +96,21 @@ const ActivityItem = ({ title, time, type }: any) => {
       <ChevronRight className="w-4 h-4 text-slate-300" />
     </div>
   );
-};
+});
 
 // ============================================================================
 // PÁGINA: DASHBOARD DO GESTOR (Cockpit Institucional)
 // ============================================================================
 
-export function DashboardGestor() {
-  const { institution, profile } = useAuthStore();
-  const [stats, setStats] = useState({
+export const DashboardGestor = React.memo(({ isVisible }: { isVisible?: boolean }) => {
+
+  const { institution } = useAuthStore();
+  const [stats] = useState({
     ocorrenciasHoje: 12,
     efetivoAtivo: 45,
     viaturasEmUso: 8,
     bairrosAtendidos: 24
   });
-
-  const chartData = [
-    { name: 'Seg', valor: 40 },
-    { name: 'Ter', valor: 30 },
-    { name: 'Qua', valor: 65 },
-    { name: 'Qui', valor: 45 },
-    { name: 'Sex', valor: 90 },
-    { name: 'Sab', valor: 110 },
-    { name: 'Dom', valor: 85 },
-  ];
-
-  const pieData = [
-    { name: 'Trânsito', value: 400 },
-    { name: 'Apoio', value: 300 },
-    { name: 'Patrimonial', value: 300 },
-    { name: 'Escolta', value: 200 },
-  ];
-
-  const COLORS = ['#4F46E5', '#10B981', '#F59E0B', '#F43F5E'];
 
   return (
     <div className="space-y-10 animate-in fade-in slide-in-from-bottom-6 duration-700 pb-20">
@@ -182,30 +187,33 @@ export function DashboardGestor() {
           </div>
           
           <div className="h-[300px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData}>
-                <defs>
-                  <linearGradient id="colorVal" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#4F46E5" stopOpacity={0.1}/>
-                    <stop offset="95%" stopColor="#4F46E5" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
-                <XAxis 
-                    dataKey="name" 
-                    axisLine={false} 
-                    tickLine={false} 
-                    tick={{fill: '#94A3B8', fontSize: 10, fontWeight: 700}} 
-                    dy={10}
-                />
-                <YAxis hide />
-                <Tooltip 
-                    contentStyle={{borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', fontWeight: 'bold'}}
-                />
-                <Area type="monotone" dataKey="valor" stroke="#4F46E5" strokeWidth={4} fillOpacity={1} fill="url(#colorVal)" />
-              </AreaChart>
-            </ResponsiveContainer>
+            {isVisible && (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={CHART_DATA}>
+                  <defs>
+                    <linearGradient id="colorVal" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#4F46E5" stopOpacity={0.1}/>
+                      <stop offset="95%" stopColor="#4F46E5" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
+                  <XAxis 
+                      dataKey="name" 
+                      axisLine={false} 
+                      tickLine={false} 
+                      tick={{fill: '#94A3B8', fontSize: 10, fontWeight: 700}} 
+                      dy={10}
+                  />
+                  <YAxis hide />
+                  <Tooltip 
+                      contentStyle={{borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', fontWeight: 'bold'}}
+                  />
+                  <Area type="monotone" dataKey="valor" stroke="#4F46E5" strokeWidth={4} fillOpacity={1} fill="url(#colorVal)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
           </div>
+
         </div>
 
         {/* ÚLTIMAS ATIVIDADES */}
@@ -234,25 +242,28 @@ export function DashboardGestor() {
             <h3 className="text-xl font-bold text-slate-900 mb-8">Naturezas Frequentes</h3>
             <div className="flex flex-col md:flex-row items-center gap-10">
                 <div className="w-full md:w-1/2 h-[200px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                        <Pie
-                            data={pieData}
-                            innerRadius={60}
-                            outerRadius={80}
-                            paddingAngle={5}
-                            dataKey="value"
-                        >
-                            {pieData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                            ))}
-                        </Pie>
-                        <Tooltip />
-                        </PieChart>
-                    </ResponsiveContainer>
+                    {isVisible && (
+                      <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                          <Pie
+                              data={PIE_DATA}
+                              innerRadius={60}
+                              outerRadius={80}
+                              paddingAngle={5}
+                              dataKey="value"
+                          >
+                              {PIE_DATA.map((_entry, index) => (
+                              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                              ))}
+                          </Pie>
+                          <Tooltip />
+                          </PieChart>
+                      </ResponsiveContainer>
+                    )}
                 </div>
+
                 <div className="w-full md:w-1/2 space-y-4">
-                    {pieData.map((d, i) => (
+                    {PIE_DATA.map((d, i) => (
                         <div key={d.name} className="flex items-center justify-between text-sm">
                             <div className="flex items-center">
                                 <div className="w-3 h-3 rounded-full mr-3" style={{backgroundColor: COLORS[i]}}></div>
@@ -300,4 +311,6 @@ export function DashboardGestor() {
 
     </div>
   );
-}
+});
+
+

@@ -49,15 +49,22 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const user = session?.user ?? null;
     
     const fetchFullProfile = async (uid: string) => {
-      const { data: profile } = await supabase
+      // Busca perfil primeiro para pegar o instituicao_id
+      const { data: profile, error: profileError } = await supabase
         .from('usuarios')
         .select('*')
         .eq('id', uid)
         .single();
       
+      if (profileError || !profile) {
+        set({ profile: null, institution: null });
+        return;
+      }
+
       set({ profile });
 
-      if (profile?.instituicao_id) {
+      if (profile.instituicao_id) {
+        // Busca instituição e planos
         const { data: institution } = await supabase
           .from('instituicoes')
           .select('*, planos(*)')
@@ -65,10 +72,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           .single();
         
         set({ institution });
-        return { profile, institution };
       }
-      return { profile, institution: null };
     };
+
 
     set({ user, isLoading: !!user });
 

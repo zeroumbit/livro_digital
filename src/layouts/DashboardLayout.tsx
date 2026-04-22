@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { Outlet, Navigate, Link, useLocation } from 'react-router-dom';
+import React, { useState, useEffect, Suspense } from 'react';
+
+import { Outlet, Navigate, Link, useLocation, ScrollRestoration } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   FileText, 
@@ -31,9 +32,12 @@ import {
 import { useAuthStore } from '@/store/useAuthStore';
 import { usePlan } from '@/hooks/usePlan';
 import { supabase } from '@/lib/supabase';
+import { OriginalLoader } from '@/components/ui/OriginalLoader';
+import { useQueryClient } from '@tanstack/react-query';
+import { fetchOccurrences } from '@/hooks/useOccurrences';
 
 // ============================================================================
-// ESTRUTURA DE NAVEGAÇÃO COMPLEXA (GESTURA)
+// ESTRUTURA DE NAVEGAÇÃO
 // ============================================================================
 
 interface NavSubItem {
@@ -47,7 +51,7 @@ interface NavItem {
   icon: any;
   path?: string;
   module?: string;
-  roles?: string[]; // Quais perfis podem ver
+  roles?: string[];
   subItems?: NavSubItem[];
 }
 
@@ -127,22 +131,26 @@ const managerNavGroups: NavGroup[] = [
   }
 ];
 
-// ============================================================================
-// COMPONENTES AUXILIARES: SIDEBAR
-// ============================================================================
-
 const SidebarItem = ({ item, allowedModules }: any) => {
   const { profile } = useAuthStore();
   const location = useLocation();
+  const queryClient = useQueryClient();
   const [isOpen, setIsOpen] = useState(location.pathname.startsWith(item.path || '!!!!'));
   const hasSubItems = item.subItems && item.subItems.length > 0;
   const isActive = item.path ? location.pathname === item.path : item.subItems?.some((si: any) => location.pathname === si.path);
 
-  // Regra de Permissão Estrita (RBAC)
+  const handlePrefetch = () => {
+    if ((item.module === 'ocorrencias' || item.path === '/ocorrencias') && profile?.instituicao_id) {
+      queryClient.prefetchQuery({
+        queryKey: ['occurrences', profile.instituicao_id],
+        queryFn: () => fetchOccurrences(profile.instituicao_id),
+        staleTime: 1000 * 60 * 10,
+      });
+    }
+  };
+
   const isGestor = profile?.perfil_acesso === 'gestor';
   const roleAllowed = !item.roles || item.roles.includes(profile?.perfil_acesso);
-  
-  // Regra de Módulo (Plano)
   const moduleAllowed = !item.module || allowedModules.includes(item.module) || isGestor;
 
   if (!roleAllowed || !moduleAllowed) return null;
@@ -153,6 +161,7 @@ const SidebarItem = ({ item, allowedModules }: any) => {
         <>
           <button 
             onClick={() => setIsOpen(!isOpen)}
+            onMouseEnter={handlePrefetch}
             className={`w-full flex items-center px-4 py-3 rounded-2xl text-sm font-bold transition-all group ${
               isActive ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
             }`}
@@ -168,6 +177,9 @@ const SidebarItem = ({ item, allowedModules }: any) => {
                 <Link
                   key={sub.path}
                   to={sub.path}
+                  onMouseEnter={() => {
+                    if (sub.path === '/ocorrencias') handlePrefetch();
+                  }}
                   className={`flex items-center px-4 py-2 rounded-xl text-xs font-bold transition-all ${
                     location.pathname === sub.path 
                       ? 'text-indigo-600 bg-indigo-50/50' 
@@ -184,6 +196,7 @@ const SidebarItem = ({ item, allowedModules }: any) => {
       ) : (
         <Link
           to={item.path!}
+          onMouseEnter={handlePrefetch}
           className={`flex items-center px-4 py-3 rounded-2xl text-sm font-bold transition-all group ${
             isActive ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
           }`}
@@ -196,59 +209,29 @@ const SidebarItem = ({ item, allowedModules }: any) => {
   );
 };
 
-// ============================================================================
-// LAYOUT PRINCIPAL: DASHBOARD (NOVA SIDEBAR)
-// ============================================================================
+// Componente de Barra de Carregamento Sutil (TopBar)
+const TopBarLoader = () => (
+  <div className="fixed top-0 left-0 right-0 h-1 z-[100] overflow-hidden bg-slate-100">
+    <div className="h-full bg-indigo-600 animate-loading-bar" style={{ width: '100%' }}></div>
+  </div>
+);
 
 export function DashboardLayout() {
+
   const { user, profile, institution, isLoading, signOut } = useAuthStore();
-  const plan = usePlan();
   const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  
   const allowedModules = institution?.planos?.modulos_ativos || [];
 
-  const [hasPendingProposal, setHasPendingProposal] = useState(false);
-
-  const checkProposals = async () => {
-    if (profile?.perfil_acesso === 'gestor' && institution?.id) {
-        const { count } = await supabase
-            .from('assinaturas_propostas')
-            .select('*', { count: 'exact', head: true })
-            .eq('instituicao_id', institution.id)
-            .eq('status', 'aguardando_gestor');
-        setHasPendingProposal(!!count && count > 0);
-    }
-  };
-
-  React.useEffect(() => {
-    if (!institution?.id) return;
-    checkProposals();
-    const channel = supabase.channel(`propostas-${institution.id}`)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'assinaturas_propostas', filter: `instituicao_id=eq.${institution.id}` }, 
-          () => checkProposals()
-        ).subscribe();
-    return () => { if (channel) supabase.removeChannel(channel); };
-  }, [profile, institution?.id]);
-
-  if (isLoading) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-slate-50">
-        <div className="flex flex-col items-center">
-          <div className="w-10 h-10 border-4 border-indigo-600/20 border-t-indigo-600 rounded-full animate-spin mb-4"></div>
-          <p className="text-slate-500 font-bold text-xs uppercase tracking-widest text-center">Iniciando Protocolos Operacionais...</p>
-        </div>
-      </div>
-    );
-  }
-
+  if (isLoading) return <OriginalLoader />;
   if (!user) return <Navigate to="/login" replace />;
   if (profile?.perfil_acesso === 'super_admin') return <Navigate to="/admin/dashboard" replace />;
 
   return (
     <div className="flex h-screen w-full bg-[#F8FAFC] overflow-hidden">
+      <ScrollRestoration />
       
-      {/* ================= SIDEBAR (DESKTOP) ================= */}
+      {/* SIDEBAR */}
       <aside className="hidden lg:flex flex-col w-72 bg-white border-r border-slate-200 shadow-sm z-20">
         <div className="h-20 flex items-center px-8 border-b border-slate-50">
             <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-600/20 mr-3">
@@ -260,16 +243,10 @@ export function DashboardLayout() {
         <nav className="flex-1 px-4 py-6 space-y-8 overflow-y-auto custom-scrollbar">
           {managerNavGroups.map((group) => (
             <div key={group.group} className="space-y-2">
-              <h5 className="px-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">
-                {group.group}
-              </h5>
+              <h5 className="px-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">{group.group}</h5>
               <div className="space-y-1">
                 {group.items.map((item) => (
-                  <SidebarItem 
-                    key={item.label} 
-                    item={item} 
-                    allowedModules={allowedModules} 
-                  />
+                  <SidebarItem key={item.label} item={item} allowedModules={allowedModules} />
                 ))}
               </div>
             </div>
@@ -297,21 +274,17 @@ export function DashboardLayout() {
         </div>
       </aside>
 
-      {/* ================= MAIN AREA ================= */}
+      {/* MAIN AREA */}
       <div className="flex-1 flex flex-col min-w-0 relative">
         <header className="h-20 bg-white/80 backdrop-blur-md border-b border-slate-200 flex items-center justify-between px-6 lg:px-10 z-10 sticky top-0">
           <div className="flex items-center">
-            <button 
-                onClick={() => setIsSidebarOpen(true)}
-                className="lg:hidden p-2.5 rounded-2xl text-slate-500 hover:bg-slate-100 mr-2"
-            >
+            <button onClick={() => setIsSidebarOpen(true)} className="lg:hidden p-2.5 rounded-2xl text-slate-500 hover:bg-slate-100 mr-2">
                 <Menu className="w-6 h-6" />
             </button>
             <h2 className="text-lg lg:text-xl font-black text-slate-900 tracking-tight capitalize">
                 {location.pathname.split('/').pop()?.replace(/-/g, ' ') || 'Início'}
             </h2>
           </div>
-
           <div className="flex items-center space-x-2 lg:space-x-4">
              <button className="relative p-2.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-2xl transition-all">
                 <Bell className="w-5 h-5" />
@@ -322,12 +295,15 @@ export function DashboardLayout() {
 
         <main className="flex-1 overflow-y-auto p-4 lg:p-10 pb-24 lg:pb-10 custom-scrollbar">
           <div className="max-w-6xl mx-auto">
-            <Outlet />
+            <Suspense fallback={<TopBarLoader />}>
+              <Outlet />
+            </Suspense>
           </div>
         </main>
+
       </div>
 
-      {/* ================= MOBILE DRAWER (SIDEBAR) ================= */}
+      {/* MOBILE DRAWER */}
       {isSidebarOpen && (
         <div className="fixed inset-0 z-[100] lg:hidden">
             <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setIsSidebarOpen(false)} />
@@ -353,7 +329,6 @@ export function DashboardLayout() {
             </aside>
         </div>
       )}
-
     </div>
   );
 }

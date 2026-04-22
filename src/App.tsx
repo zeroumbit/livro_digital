@@ -1,8 +1,9 @@
 import { RouterProvider } from 'react-router-dom';
 import { router } from './routes';
 import { Toaster } from 'sonner';
-import { useEffect } from 'react';
+import { useEffect, Suspense } from 'react';
 import { useAuthStore } from './store/useAuthStore';
+import { OriginalLoader } from './components/ui/OriginalLoader';
 
 function App() {
   const initializeAuth = useAuthStore((state) => state.initialize);
@@ -18,6 +19,9 @@ function App() {
       <Toaster position="top-right" richColors closeButton />
     </>
   );
+
 }
+
+
 
 export default App;

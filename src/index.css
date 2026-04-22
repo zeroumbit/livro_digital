@@ -1,5 +1,16 @@
 @import "tailwindcss";
 
+@keyframes loading-bar {
+  0% { transform: translateX(-100%); }
+  50% { transform: translateX(-30%); }
+  100% { transform: translateX(100%); }
+}
+
+.animate-loading-bar {
+  animation: loading-bar 2s ease-in-out infinite;
+}
+
+
 @theme {
   --color-border: hsl(var(--border));
   --color-input: hsl(var(--input));
