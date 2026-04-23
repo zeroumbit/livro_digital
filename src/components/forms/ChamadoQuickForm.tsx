@@ -298,7 +298,7 @@ export function ChamadoQuickForm({ onClose, onSuccess }: Props) {
             {errors.qtde_envolvidos && <p className="text-xs font-bold text-red-500">{errors.qtde_envolvidos.message}</p>}
           </section>
 
-          {/* Localização */}
+{/* Localização */}
           <section className="space-y-4">
             <div className="flex items-center gap-2 text-slate-400">
                <Navigation className="w-4 h-4" />
@@ -313,34 +313,19 @@ export function ChamadoQuickForm({ onClose, onSuccess }: Props) {
                 setValue('coordenadas', loc.coordenadas || '');
               }}
             />
-{errors.coordenadas && <p className="text-xs font-bold text-red-500">O GPS é obrigatório para acionamento rápido.</p>}
-             
-             <div className="space-y-2">
-               <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Ponto de Referência</label>
-               <input 
-                 {...register('ponto_referencia')}
-                 placeholder="Próximo a..."
-                 className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none"
-               />
-             </div>
-</section>
-
-          {/* Detalhes Adicionais */}
-          <section className="space-y-4">
-            <div className="flex items-center gap-2 text-slate-400">
-               <AlertTriangle className="w-4 h-4" />
-               <span className="text-[10px] font-black uppercase tracking-widest">Detalhes Adicionais</span>
-            </div>
-            <textarea 
-              {...register('detalhes')}
-              placeholder="Observações complementares..."
-              rows={5}
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none resize-none"
-            />
+            {errors.coordenadas && <p className="text-xs font-bold text-red-500">O GPS é obrigatório para acionamento rápido.</p>}
+              
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Ponto de Referência</label>
+                <input 
+                  {...register('ponto_referencia')}
+                  placeholder="Próximo a..."
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none"
+                />
+              </div>
           </section>
 
         </form>
-      </div>
 
       {/* Footer */}
       <div className="px-6 py-5 border-t border-slate-100 bg-slate-50/50 flex-shrink-0">

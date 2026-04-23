@@ -52,4 +52,15 @@ export default defineConfig({
     },
     chunkSizeWarningLimit: 1000,
   },
+  server: {
+    host: true,
+    port: 5173,
+    hmr: {
+      host: 'localhost',
+      protocol: 'ws',
+    },
+    watch: {
+      usePolling: true,
+    },
+  },
 });
