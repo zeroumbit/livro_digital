@@ -13,15 +13,41 @@ export interface Occurrence {
 export const fetchOccurrences = async (instituicaoId: string) => {
   if (!instituicaoId) return [];
   
-  const { data, error } = await supabase
+  const { data: ocorrencias, error } = await supabase
     .from('ocorrencias')
-    .select('id, numero_oficial, status, prioridade, natureza, bairro, created_at')
+    .select('id, numero_oficial, status, prioridade, natureza, rua, numero, bairro, cep, cidade, estado, referencia, created_at, categoria, ultimo_passo, natureza_alteracao, origem, origem_tipo, descricao, fotos')
+
+
+
+
     .eq('instituicao_id', instituicaoId)
     .order('created_at', { ascending: false })
-    .limit(50); // Limita a 50 para carregamento ultra-rápido
+    .limit(50);
 
   if (error) throw error;
-  return data;
+  if (!ocorrencias || ocorrencias.length === 0) return [];
+
+  const ocorrenciaIds = ocorrencias.map(o => o.id);
+  
+  const { data: envolvidos } = await supabase
+    .from('ocorrencia_envolvidos')
+    .select('ocorrencia_id, genero')
+    .in('ocorrencia_id', ocorrenciaIds);
+
+  const generosMap: Record<string, string[]> = {};
+  (envolvidos || []).forEach((env: any) => {
+    if (env.genero) {
+      if (!generosMap[env.ocorrencia_id]) {
+        generosMap[env.ocorrencia_id] = [];
+      }
+      generosMap[env.ocorrencia_id].push(env.genero);
+    }
+  });
+
+  return ocorrencias.map(o => ({
+    ...o,
+    genero: generosMap[o.id]?.[0] || null
+  }));
 };
 
 

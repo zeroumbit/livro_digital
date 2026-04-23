@@ -95,13 +95,15 @@ export function ChamadosPage() {
                     <button 
                       onClick={() => {
                         setPreFillData({
+                          categoria: 'chamados',
                           rua: c.rua,
                           bairro: c.bairro,
                           numero: c.numero,
                           referencia: c.referencia,
                           descricao: `CHAMADO: ${c.solicitante_nome}\nTELEFONE: ${c.solicitante_telefone}\nDESCRIÇÃO: ${c.descricao}`,
-                          origem: 'CHAMADO',
-                          tipo_origem: 'TELEFONE'
+                          origem: 'CENTRAL DE RÁDIO',
+                          tipo_origem: 'Rádio'
+
                         });
                         setIsOcFormOpen(true);
                       }}
@@ -130,11 +132,13 @@ export function ChamadosPage() {
         <div className="fixed inset-0 z-50 bg-white animate-in slide-in-from-bottom-8 duration-500">
           <OcorrenciaMultiStepForm 
             initialData={preFillData}
-            onClose={() => setIsOcFormOpen(false)} 
+            defaultCategoria="chamados"
+            onClose={() => { setIsOcFormOpen(false); setPreFillData(null); }} 
             onSuccess={() => fetchChamados()} 
           />
         </div>
       )}
+
     </div>
   );
 }

@@ -21,8 +21,12 @@ const EquipesPage = lazy(() => import('@/pages/dashboard/EquipesPage').then(m =>
 const AssinaturaPage = lazy(() => import('@/pages/dashboard/AssinaturaPage').then(m => ({ default: m.AssinaturaPage })));
 const VeiculosPage = lazy(() => import('@/pages/dashboard/VeiculosPage').then(m => ({ default: m.VeiculosPage })));
 const OcorrenciasPage = lazy(() => import('@/pages/dashboard/OcorrenciasPage').then(m => ({ default: m.OcorrenciasPage })));
+const EditOccurrencePage = lazy(() => import('@/pages/dashboard/EditOccurrencePage').then(m => ({ default: m.EditOccurrencePage })));
+
 const ConfiguracoesPage = lazy(() => import('@/pages/dashboard/ConfiguracoesPage').then(m => ({ default: m.ConfiguracoesPage })));
 const ChamadosPage = lazy(() => import('@/pages/dashboard/ChamadosPage').then(m => ({ default: m.ChamadosPage })));
+const EscalasPage = lazy(() => import('@/pages/dashboard/EscalasPage').then(m => ({ default: m.EscalasPage })));
+const CreateOcorrenciaPage = lazy(() => import('@/pages/dashboard/CreateOcorrenciaPage').then(m => ({ default: m.CreateOcorrenciaPage })));
 
 export const router = createBrowserRouter([
   {
@@ -32,6 +36,15 @@ export const router = createBrowserRouter([
   {
     path: '/setup',
     element: <SetupWizard />,
+  },
+  // Páginas em tela cheia (sem layout)
+  {
+    path: '/criar/ocorrencia/:tipo?',
+    element: <CreateOcorrenciaPage />,
+  },
+  {
+    path: '/editar/ocorrencia/:id',
+    element: <EditOccurrencePage />,
   },
   {
     path: '/admin',
@@ -102,12 +115,17 @@ export const router = createBrowserRouter([
       },
       {
         path: '/ocorrencias/embriaguez',
-        element: <div className="p-8"><h1 className="text-3xl font-black">Operação Embriaguez ao Volante</h1></div>,
+        element: <OcorrenciasPage categoria="embriaguez" title="Operação Embriaguez ao Volante" />,
       },
       {
         path: '/ocorrencias/maria-da-penha',
-        element: <div className="p-8"><h1 className="text-3xl font-black">Patrulha Maria da Penha</h1></div>,
+        element: <OcorrenciasPage categoria="maria_da_penha" title="Patrulha Maria da Penha" />,
       },
+      {
+        path: '/ocorrencias/chamados',
+        element: <OcorrenciasPage categoria="chamados" title="Ocorrências via Central/Chamados" />,
+      },
+
       // Veículos
       {
         path: '/veiculos',
@@ -153,7 +171,7 @@ export const router = createBrowserRouter([
       },
       {
         path: '/escalas',
-        element: <div className="p-8"><h1 className="text-3xl font-black">Gestão de Escalas</h1></div>,
+        element: <EscalasPage />,
       },
       {
         path: '/relatorios',

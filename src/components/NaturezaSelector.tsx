@@ -8,71 +8,80 @@ interface NaturezaSelectorProps {
 
 const naturezas = [
   {
+    group: 'Emergências',
+    icon: <AlertCircle className="w-4 h-4" />,
+    items: [
+      'Surto Psicótico',
+      'Ameaça de Morte Iminente',
+      'Sequestro / Cárcere Privado',
+      'Roubo em Andamento',
+      'Arrombamento / Invasão em Andamento',
+      'Pessoa Desaparecida (Criança ou Idoso)',
+      'Afogamento',
+      'Choque Elétrico / Eletrocussão',
+      'Edifício em Risco de Desabamento',
+      'Fuga de Interno (Hospício, Prisão ou UBS)',
+      'Pessoa em Perigo Iminente',
+      'Tentativa de Suicídio',
+      'Incêndio/Explosão',
+      'Desabamento/Deslizamento'
+    ]
+  },
+  {
     group: 'Segurança Pública Municipal',
     icon: <Shield className="w-4 h-4" />,
     items: [
+      'Abandono de Incapaz',
+      'Maus-Tratos contra Animal',
+      'Rixa / Briga Generalizada',
+      'Pixação / Pichação',
+      'Descumprimento de Medida Protetiva',
       'Danos ao Patrimônio Público',
       'Perturbação do Sossego',
       'Via de Fato (Desentendimento)',
       'Ameaça',
-      'Briga/Conflito entre Pessoas',
       'Embriaguez em Via Pública',
       'Comércio Irregular/Ambulante',
       'Situação de Risco a Crianças/Adolescentes',
       'Pessoa em Situação de Rua',
-      'Violência Doméstica (Aguardando Polícia)',
-      'Patrulhamento Preventivo',
-      'Abordagem de Prevenção',
-      'Atividade Suspeita',
-      'Ponto de Droga Identificado'
+      'Atividade Suspeita'
     ]
   },
   {
     group: 'Trânsito e Mobilidade',
     icon: <Car className="w-4 h-4" />,
     items: [
+      'Rolezinho / Concentração de Motos',
+      'Veículo em Alta Velocidade em Via Local',
+      'Bebê ou Criança Sozinha Dentro de Veículo',
+      'Carga Perigosa Derramada',
       'Acidente sem Vítimas',
       'Acidente com Vítimas Leves',
       'Acidente com Vítimas Graves',
       'Estacionamento em Local Proibido',
-      'Excesso de Velocidade',
-      'Avanço de Sinal',
       'Direção Perigosa',
       'Veículo Abandonado',
-      'Veículo com Roubo/Furto',
-      'Veículo Alterado',
-      'Sinalização Danificada',
-      'Obstrução de Via Pública'
+      'Veículo com Roubo/Furto'
     ]
   },
   {
     group: 'Apoio e Serviços',
     icon: <LifeBuoy className="w-4 h-4" />,
     items: [
+      'Acompanhamento de Escolta',
+      'Verificação de Bem-Estar',
+      'Remoção de Ébrio',
       'Apoio a Cidadão Necessitado',
       'Busca de Animal Solto',
       'Acesso a Residência/Empresa',
       'Apoio à Polícia Civil',
       'Apoio ao SAMU',
       'Apoio aos Bombeiros',
-      'Operação Especial Programada',
-      'Cobertura de Evento Público'
-    ]
-  },
-  {
-    group: 'Emergências',
-    icon: <AlertCircle className="w-4 h-4" />,
-    items: [
-      'Pessoa em Perigo Iminente',
-      'Tentativa de Suicídio',
-      'Incêndio/Explosão',
-      'Desabamento/Deslizamento',
-      'Encontro de Artefato Explosivo',
-      'Vazamento de Produto Químico',
-      'Queda de Árvore/Poste'
+      'Operação Especial Programada'
     ]
   }
 ];
+
 
 export function NaturezaSelector({ selected, onChange }: NaturezaSelectorProps) {
   const toggleNatureza = (item: string) => {

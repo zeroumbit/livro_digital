@@ -210,7 +210,7 @@ CREATE TABLE IF NOT EXISTS public.ocorrencia_anotacoes (
     ocorrencia_id UUID REFERENCES public.ocorrencias(id) ON DELETE CASCADE,
     usuario_id UUID REFERENCES public.usuarios(id),
     texto TEXT NOT NULL,
-    criado_em TIMESTAMPTZ DEFAULT now()
+    created_at TIMESTAMPTZ DEFAULT now()
 );
 
 -- ============================================================================
@@ -251,17 +251,39 @@ CREATE OR REPLACE FUNCTION current_tenant_id() RETURNS UUID AS $$
 $$ LANGUAGE sql STABLE;
 
 -- Aplica a regra: Só pode ver e editar dados se pertencerem à instituição do usuário logado
+DROP POLICY IF EXISTS "Tenant_Isolation_bairros" ON public.bairros;
 CREATE POLICY "Tenant_Isolation_bairros" ON public.bairros FOR ALL USING (instituicao_id = current_tenant_id() OR public.is_super_admin());
+
+DROP POLICY IF EXISTS "Tenant_Isolation_tenant_configuracoes" ON public.tenant_configuracoes;
 CREATE POLICY "Tenant_Isolation_tenant_configuracoes" ON public.tenant_configuracoes FOR ALL USING (instituicao_id = current_tenant_id() OR public.is_super_admin());
+
+DROP POLICY IF EXISTS "Tenant_Isolation_equipes" ON public.equipes;
 CREATE POLICY "Tenant_Isolation_equipes" ON public.equipes FOR ALL USING (instituicao_id = current_tenant_id() OR public.is_super_admin());
+
+DROP POLICY IF EXISTS "Tenant_Isolation_escalas" ON public.escalas;
 CREATE POLICY "Tenant_Isolation_escalas" ON public.escalas FOR ALL USING (instituicao_id = current_tenant_id() OR public.is_super_admin());
+
+DROP POLICY IF EXISTS "Tenant_Isolation_veiculos" ON public.veiculos;
 CREATE POLICY "Tenant_Isolation_veiculos" ON public.veiculos FOR ALL USING (instituicao_id = current_tenant_id() OR public.is_super_admin());
+
+DROP POLICY IF EXISTS "Tenant_Isolation_km_diario" ON public.km_diario;
 CREATE POLICY "Tenant_Isolation_km_diario" ON public.km_diario FOR ALL USING (instituicao_id = current_tenant_id() OR public.is_super_admin());
+
+DROP POLICY IF EXISTS "Tenant_Isolation_vistorias" ON public.vistorias;
 CREATE POLICY "Tenant_Isolation_vistorias" ON public.vistorias FOR ALL USING (instituicao_id = current_tenant_id() OR public.is_super_admin());
+
+DROP POLICY IF EXISTS "Tenant_Isolation_abastecimentos" ON public.abastecimentos;
 CREATE POLICY "Tenant_Isolation_abastecimentos" ON public.abastecimentos FOR ALL USING (instituicao_id = current_tenant_id() OR public.is_super_admin());
+
+DROP POLICY IF EXISTS "Tenant_Isolation_ocorrencias" ON public.ocorrencias;
 CREATE POLICY "Tenant_Isolation_ocorrencias" ON public.ocorrencias FOR ALL USING (instituicao_id = current_tenant_id() OR public.is_super_admin());
+
+DROP POLICY IF EXISTS "Tenant_Isolation_chamados" ON public.chamados;
 CREATE POLICY "Tenant_Isolation_chamados" ON public.chamados FOR ALL USING (instituicao_id = current_tenant_id() OR public.is_super_admin());
+
+DROP POLICY IF EXISTS "Tenant_Isolation_tenant_auditoria" ON public.tenant_auditoria;
 CREATE POLICY "Tenant_Isolation_tenant_auditoria" ON public.tenant_auditoria FOR ALL USING (instituicao_id = current_tenant_id() OR public.is_super_admin());
+
 
 -- ============================================================================
 -- 7. TRIGGERS DE SEGURANÇA E REGRAS DE NEGÓCIO DA OPERAÇÃO
@@ -271,13 +293,18 @@ CREATE POLICY "Tenant_Isolation_tenant_auditoria" ON public.tenant_auditoria FOR
 -- Documento 0 REGRAS: "Apenas ocorrências com status rascunho podem ser editadas."
 CREATE OR REPLACE FUNCTION tg_block_ocorrencia_edit() RETURNS TRIGGER AS $$
 BEGIN
-    -- Permite apenas mudar o status (ex: rascunho -> finalizada) ou atualizar se estiver em rascunho
-    IF OLD.status NOT IN ('rascunho') AND (OLD.status = NEW.status) THEN
-        RAISE EXCEPTION 'Imutabilidade: Ocorrências finalizadas ou em andamento não podem ser editadas. Use as anotações.';
+    -- Se já estava finalizada, arquivada ou em atendimento, bloqueia QUALQUER alteração, 
+    -- inclusive tentar voltar para rascunho.
+    IF OLD.status IN ('finalizada', 'arquivada', 'em_atendimento') THEN
+        -- A única exceção seria o Super Admin, mas a regra aqui é geral para o sistema.
+        RAISE EXCEPTION 'Imutabilidade: Esta ocorrência já foi processada e não admite mais alterações de dados ou status.';
     END IF;
+
+    -- Se está em rascunho, permite tudo (incluindo finalizar)
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
+
 
 DROP TRIGGER IF EXISTS tr_ocorrencia_imutavel ON public.ocorrencias;
 CREATE TRIGGER tr_ocorrencia_imutavel

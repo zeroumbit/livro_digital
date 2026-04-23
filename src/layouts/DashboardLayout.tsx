@@ -276,22 +276,24 @@ export function DashboardLayout() {
 
       {/* MAIN AREA */}
       <div className="flex-1 flex flex-col min-w-0 relative">
-        <header className="h-20 bg-white/80 backdrop-blur-md border-b border-slate-200 flex items-center justify-between px-6 lg:px-10 z-10 sticky top-0">
-          <div className="flex items-center">
-            <button onClick={() => setIsSidebarOpen(true)} className="lg:hidden p-2.5 rounded-2xl text-slate-500 hover:bg-slate-100 mr-2">
-                <Menu className="w-6 h-6" />
-            </button>
-            <h2 className="text-lg lg:text-xl font-black text-slate-900 tracking-tight capitalize">
-                {location.pathname.split('/').pop()?.replace(/-/g, ' ') || 'Início'}
-            </h2>
-          </div>
-          <div className="flex items-center space-x-2 lg:space-x-4">
-             <button className="relative p-2.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-2xl transition-all">
-                <Bell className="w-5 h-5" />
-                <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-rose-500 rounded-full border-2 border-white"></span>
-            </button>
-          </div>
-        </header>
+        {!location.pathname.startsWith('/criar') && !location.pathname.startsWith('/editar') && (
+          <header className="h-20 bg-white/80 backdrop-blur-md border-b border-slate-200 flex items-center justify-between px-6 lg:px-10 z-10 sticky top-0">
+            <div className="flex items-center">
+              <button onClick={() => setIsSidebarOpen(true)} className="lg:hidden p-2.5 rounded-2xl text-slate-500 hover:bg-slate-100 mr-2">
+                  <Menu className="w-6 h-6" />
+              </button>
+              <h2 className="text-lg lg:text-xl font-black text-slate-900 tracking-tight capitalize">
+                  {location.pathname.split('/').pop()?.replace(/-/g, ' ') || 'Início'}
+              </h2>
+            </div>
+            <div className="flex items-center space-x-2 lg:space-x-4">
+              <button className="relative p-2.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-2xl transition-all">
+                  <Bell className="w-5 h-5" />
+                  <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-rose-500 rounded-full border-2 border-white"></span>
+              </button>
+            </div>
+          </header>
+        )}
 
         <main className="flex-1 overflow-y-auto p-4 lg:p-10 pb-24 lg:pb-10 custom-scrollbar">
           <div className="max-w-6xl mx-auto">
