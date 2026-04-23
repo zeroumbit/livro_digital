@@ -304,7 +304,7 @@ export function ChamadoQuickForm({ onClose, onSuccess }: Props) {
                <Navigation className="w-4 h-4" />
                <span className="text-[10px] font-black uppercase tracking-widest">Localização do Chamado</span>
             </div>
-            <LocationInput 
+<LocationInput 
               onLocationChange={(loc) => {
                 setValue('rua', loc.rua);
                 setValue('bairro', loc.bairro);
@@ -314,15 +314,14 @@ export function ChamadoQuickForm({ onClose, onSuccess }: Props) {
               }}
             />
             {errors.coordenadas && <p className="text-xs font-bold text-red-500">O GPS é obrigatório para acionamento rápido.</p>}
-              
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Ponto de Referência</label>
-                <input 
-                  {...register('ponto_referencia')}
-                  placeholder="Próximo a..."
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none"
-                />
-              </div>
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Ponto de Referência</label>
+              <input 
+                {...register('ponto_referencia')}
+                placeholder="Próximo a..."
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none"
+              />
+            </div>
           </section>
 
         </form>
