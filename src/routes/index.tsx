@@ -1,32 +1,55 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
-import { lazy } from 'react';
+import { lazy, Suspense, startTransition } from 'react';
 import { AuthLayout } from '@/layouts/AuthLayout';
 import { DashboardLayout } from '@/layouts/DashboardLayout';
 import SuperAdminLayout from '@/layouts/SuperAdminLayout';
+import { LoadingScreen } from '@/components/ui/LoadingScreen';
 
-// Páginas com Lazy Loading
-const LoginPage = lazy(() => import('@/pages/auth/LoginPage').then(m => ({ default: m.LoginPage })));
-const RegisterPage = lazy(() => import('@/pages/auth/RegisterPage').then(m => ({ default: m.RegisterPage })));
-const SetupWizard = lazy(() => import('@/pages/onboarding/SetupWizard').then(m => ({ default: m.SetupWizard })));
+// Componente de preload para cache instantâneo
+const PreloadLink = ({ to }: { to: string }) => {
+  if (typeof window !== 'undefined') {
+    import('@/pages/dashboard/ChamadosPage').catch(() => {});
+    import('@/pages/dashboard/OcorrenciasPage').catch(() => {});
+  }
+  return null;
+};
 
-const AdminDashboard = lazy(() => import('@/pages/admin/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
-const AdminInstituicoes = lazy(() => import('@/pages/admin/AdminInstituicoes').then(m => ({ default: m.AdminInstituicoes })));
-const AdminPlanos = lazy(() => import('@/pages/admin/AdminPlanos').then(m => ({ default: m.AdminPlanos })));
-const AdminAssinaturas = lazy(() => import('@/pages/admin/AdminAssinaturas').then(m => ({ default: m.AdminAssinaturas })));
-const AdminAuditoria = lazy(() => import('@/pages/admin/AdminAuditoria').then(m => ({ default: m.AdminAuditoria })));
-const AdminConfiguracoes = lazy(() => import('@/pages/admin/AdminConfiguracoes').then(m => ({ default: m.AdminConfiguracoes })));
+// Páginas com Lazy Loading otimizado
+const createLazy = (factory: () => Promise<{ default: React.ComponentType<any> }>) => 
+  lazy(() => startTransition(() => factory()));
 
-const DashboardGestor = lazy(() => import('@/pages/dashboard/DashboardGestor').then(m => ({ default: m.DashboardGestor })));
-const EquipesPage = lazy(() => import('@/pages/dashboard/EquipesPage').then(m => ({ default: m.EquipesPage })));
-const AssinaturaPage = lazy(() => import('@/pages/dashboard/AssinaturaPage').then(m => ({ default: m.AssinaturaPage })));
-const VeiculosPage = lazy(() => import('@/pages/dashboard/VeiculosPage').then(m => ({ default: m.VeiculosPage })));
-const OcorrenciasPage = lazy(() => import('@/pages/dashboard/OcorrenciasPage').then(m => ({ default: m.OcorrenciasPage })));
-const EditOccurrencePage = lazy(() => import('@/pages/dashboard/EditOccurrencePage').then(m => ({ default: m.EditOccurrencePage })));
+const LoginPage = createLazy(() => import('@/pages/auth/LoginPage').then(m => ({ default: m.LoginPage })));
+const RegisterPage = createLazy(() => import('@/pages/auth/RegisterPage').then(m => ({ default: m.RegisterPage })));
+const SetupWizard = createLazy(() => import('@/pages/onboarding/SetupWizard').then(m => ({ default: m.SetupWizard })));
 
-const ConfiguracoesPage = lazy(() => import('@/pages/dashboard/ConfiguracoesPage').then(m => ({ default: m.ConfiguracoesPage })));
-const ChamadosPage = lazy(() => import('@/pages/dashboard/ChamadosPage').then(m => ({ default: m.ChamadosPage })));
-const EscalasPage = lazy(() => import('@/pages/dashboard/EscalasPage').then(m => ({ default: m.EscalasPage })));
-const CreateOcorrenciaPage = lazy(() => import('@/pages/dashboard/CreateOcorrenciaPage').then(m => ({ default: m.CreateOcorrenciaPage })));
+const AdminDashboard = createLazy(() => import('@/pages/admin/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
+const AdminInstituicoes = createLazy(() => import('@/pages/admin/AdminInstituicoes').then(m => ({ default: m.AdminInstituicoes })));
+const AdminPlanos = createLazy(() => import('@/pages/admin/AdminPlanos').then(m => ({ default: m.AdminPlanos })));
+const AdminAssinaturas = createLazy(() => import('@/pages/admin/AdminAssinaturas').then(m => ({ default: m.AdminAssinaturas })));
+const AdminAuditoria = createLazy(() => import('@/pages/admin/AdminAuditoria').then(m => ({ default: m.AdminAuditoria })));
+const AdminConfiguracoes = createLazy(() => import('@/pages/admin/AdminConfiguracoes').then(m => ({ default: m.AdminConfiguracoes })));
+
+const DashboardGestor = createLazy(() => import('@/pages/dashboard/DashboardGestor').then(m => ({ default: m.DashboardGestor })));
+const EquipesPage = createLazy(() => import('@/pages/dashboard/EquipesPage').then(m => ({ default: m.EquipesPage })));
+const AssinaturaPage = createLazy(() => import('@/pages/dashboard/AssinaturaPage').then(m => ({ default: m.AssinaturaPage })));
+const VeiculosPage = createLazy(() => import('@/pages/dashboard/VeiculosPage').then(m => ({ default: m.VeiculosPage })));
+const OcorrenciasPage = createLazy(() => import('@/pages/dashboard/OcorrenciasPage').then(m => ({ default: m.OcorrenciasPage })));
+const EditOccurrencePage = createLazy(() => import('@/pages/dashboard/EditOccurrencePage').then(m => ({ default: m.EditOccurrencePage })));
+
+const ConfiguracoesPage = createLazy(() => import('@/pages/dashboard/ConfiguracoesPage').then(m => ({ default: m.ConfiguracoesPage })));
+const ChamadosPage = createLazy(() => import('@/pages/dashboard/ChamadosPage').then(m => ({ default: m.ChamadosPage })));
+const EscalasPage = createLazy(() => import('@/pages/dashboard/EscalasPage').then(m => ({ default: m.EscalasPage })));
+const CreateOcorrenciaPage = createLazy(() => import('@/pages/dashboard/CreateOcorrenciaPage').then(m => ({ default: m.CreateOcorrenciaPage })));
+
+// Page wrapper com Suspense otimizado
+const Page = ({ children }: { children: React.ReactNode }) => (
+  <Suspense fallback={<LoadingScreen minimal />}>{children}</Suspense>
+);
+
+// Page wrapper com Suspense otimizado
+const Page = ({ children }: { children: React.ReactNode }) => (
+  <Suspense fallback={<LoadingScreen minimal />}>{children}</Suspense>
+);
 
 export const router = createBrowserRouter([
   {
@@ -40,11 +63,11 @@ export const router = createBrowserRouter([
   // Páginas em tela cheia (sem layout)
   {
     path: '/criar/ocorrencia/:tipo?',
-    element: <CreateOcorrenciaPage />,
+    element: <Page><CreateOcorrenciaPage /></Page>,
   },
   {
     path: '/editar/ocorrencia/:id',
-    element: <EditOccurrencePage />,
+    element: <Page><EditOccurrencePage /></Page>,
   },
   {
     path: '/admin',
@@ -56,19 +79,19 @@ export const router = createBrowserRouter([
       },
       {
         path: 'dashboard',
-        element: <AdminDashboard />,
+        element: <Page><AdminDashboard /></Page>,
       },
       {
         path: 'instituicoes',
-        element: <AdminInstituicoes />,
+        element: <Page><AdminInstituicoes /></Page>,
       },
       {
         path: 'planos',
-        element: <AdminPlanos />,
+        element: <Page><AdminPlanos /></Page>,
       },
       {
         path: 'assinaturas',
-        element: <AdminAssinaturas />,
+        element: <Page><AdminAssinaturas /></Page>,
       },
       {
         path: 'suporte',
@@ -76,11 +99,11 @@ export const router = createBrowserRouter([
       },
       {
         path: 'auditoria',
-        element: <AdminAuditoria />,
+        element: <Page><AdminAuditoria /></Page>,
       },
       {
         path: 'configuracoes',
-        element: <AdminConfiguracoes />,
+        element: <Page><AdminConfiguracoes /></Page>,
       },
     ]
   },
@@ -89,11 +112,11 @@ export const router = createBrowserRouter([
     children: [
       {
         path: '/login',
-        element: <LoginPage />,
+        element: <Page><LoginPage /></Page>,
       },
       {
         path: '/registrar',
-        element: <RegisterPage />,
+        element: <Page><RegisterPage /></Page>,
       },
     ],
   },
@@ -102,34 +125,34 @@ export const router = createBrowserRouter([
     children: [
       {
         path: '/dashboard',
-        element: <DashboardGestor />,
+        element: <Page><DashboardGestor /></Page>,
       },
       // Operações (Agrupado)
       {
         path: '/ocorrencias',
-        element: <OcorrenciasPage />,
+        element: <Page><OcorrenciasPage /></Page>,
       },
       {
         path: '/chamados',
-        element: <ChamadosPage />,
+        element: <Page><ChamadosPage /></Page>,
       },
       {
         path: '/ocorrencias/embriaguez',
-        element: <OcorrenciasPage categoria="embriaguez" title="Operação Embriaguez ao Volante" />,
+        element: <Page><OcorrenciasPage categoria="embriaguez" title="Operação Embriaguez ao Volante" /></Page>,
       },
       {
         path: '/ocorrencias/maria-da-penha',
-        element: <OcorrenciasPage categoria="maria_da_penha" title="Patrulha Maria da Penha" />,
+        element: <Page><OcorrenciasPage categoria="maria_da_penha" title="Patrulha Maria da Penha" /></Page>,
       },
       {
         path: '/ocorrencias/chamados',
-        element: <OcorrenciasPage categoria="chamados" title="Ocorrências via Central/Chamados" />,
+        element: <Page><OcorrenciasPage categoria="chamados" title="Ocorrências via Central/Chamados" /></Page>,
       },
 
       // Veículos
       {
         path: '/veiculos',
-        element: <VeiculosPage />,
+        element: <Page><VeiculosPage /></Page>,
       },
       {
         path: '/veiculos/km',
@@ -167,11 +190,11 @@ export const router = createBrowserRouter([
       // Outros
       {
         path: '/equipes',
-        element: <EquipesPage />,
+        element: <Page><EquipesPage /></Page>,
       },
       {
         path: '/escalas',
-        element: <EscalasPage />,
+        element: <Page><EscalasPage /></Page>,
       },
       {
         path: '/relatorios',
@@ -183,11 +206,11 @@ export const router = createBrowserRouter([
       },
       {
         path: '/assinatura',
-        element: <AssinaturaPage />,
+        element: <Page><AssinaturaPage /></Page>,
       },
       {
         path: '/configuracoes',
-        element: <ConfiguracoesPage />,
+        element: <Page><ConfiguracoesPage /></Page>,
       },
       {
         path: '/auditoria',

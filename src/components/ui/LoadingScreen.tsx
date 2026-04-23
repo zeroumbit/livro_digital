@@ -1,6 +1,17 @@
 import { motion } from 'framer-motion';
 
-export function LoadingScreen() {
+interface Props {
+  minimal?: boolean;
+}
+
+export function LoadingScreen({ minimal }: Props = {}) {
+  if (minimal) {
+    return (
+      <div className="flex h-full w-full items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-red-600" />
+      </div>
+    );
+  }
   return (
     <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background/80 backdrop-blur-md">
       <div className="relative flex flex-col items-center">

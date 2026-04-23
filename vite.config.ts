@@ -40,13 +40,28 @@ export default defineConfig({
   build: {
     target: 'esnext',
     minify: 'esbuild',
+    sourcemap: false,
     rollupOptions: {
       output: {
-        manualChunks: {
-          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-          'vendor-utils': ['lucide-react', 'framer-motion', 'date-fns', 'clsx', 'tailwind-merge'],
-          'vendor-db': ['@supabase/supabase-js', '@tanstack/react-query'],
-          'vendor-charts': ['recharts'],
+        manualChunks: (id) => {
+          if (id.includes('node_modules')) {
+            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
+              return 'vendor-react';
+            }
+            if (id.includes('@supabase') || id.includes('@tanstack')) {
+              return 'vendor-db';
+            }
+            if (id.includes('lucide') || id.includes('framer') || id.includes('date-fns') || id.includes('clsx') || id.includes('tailwind')) {
+              return 'vendor-utils';
+            }
+            if (id.includes('recharts')) {
+              return 'vendor-charts';
+            }
+            if (id.includes('zod') || id.includes('hookform') || id.includes('zustand')) {
+              return 'vendor-forms';
+            }
+            return 'vendor-misc';
+          }
         },
       },
     },
@@ -62,5 +77,8 @@ export default defineConfig({
     watch: {
       usePolling: true,
     },
+  },
+  optimizeDeps: {
+    include: ['react', 'react-dom', 'react-router-dom'],
   },
 });

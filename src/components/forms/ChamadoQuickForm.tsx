@@ -41,6 +41,7 @@ const chamadoSchema = z.object({
   coordenadas: z.string().min(1, 'GPS obrigatório para chamados rápidos'),
   ponto_referencia: z.string().optional(),
   detalhes: z.string().optional(),
+  parceiros: z.array(z.string()).optional().default([]),
 });
 
 type ChamadoFormData = z.infer<typeof chamadoSchema>;
@@ -325,6 +326,7 @@ export function ChamadoQuickForm({ onClose, onSuccess }: Props) {
           </section>
 
         </form>
+      </div>
 
       {/* Footer */}
       <div className="px-6 py-5 border-t border-slate-100 bg-slate-50/50 flex-shrink-0">
