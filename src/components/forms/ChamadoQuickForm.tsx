@@ -304,7 +304,7 @@ export function ChamadoQuickForm({ onClose, onSuccess }: Props) {
                <Navigation className="w-4 h-4" />
                <span className="text-[10px] font-black uppercase tracking-widest">Localização do Chamado</span>
             </div>
-<LocationInput 
+            <LocationInput 
               onLocationChange={(loc) => {
                 setValue('rua', loc.rua);
                 setValue('bairro', loc.bairro);
