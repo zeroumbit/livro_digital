@@ -17,9 +17,12 @@ import {
   Users,
   Image as ImageIcon,
   Loader2,
-  Info,
-  AlertCircle,
-  Zap
+  MapPinCheck,
+  ReceiptText,
+  ClipboardList,
+  Beer,
+  Activity,
+  CheckSquare
 } from 'lucide-react';
 
 
@@ -32,7 +35,7 @@ import { toast } from 'sonner';
 
 const envolvidosSchema = z.object({
   nome_completo: z.string().min(1, 'Nome é obrigatório'),
-  tipo: z.enum(['Vítima', 'Suspeito', 'Testemunha', 'Informante', 'Outro']),
+  tipo: z.enum(['Vítima', 'Suspeito', 'Testemunha', 'Informante', 'Condutor', 'Outro']),
   genero: z.string().optional(),
   cpf: z.string().regex(/^\d{11}$|^$/, 'CPF deve ter 11 dígitos').optional(),
   rg: z.string().optional(),
@@ -58,6 +61,23 @@ const ocorrenciaSchema = z.object({
   coordenadas: z.string().optional(),
   natureza_alteracao: z.string().optional(),
   envolvidos: z.array(envolvidosSchema).default([]),
+  
+  // Módulo Embriaguez
+  etilometro_marca: z.string().optional(),
+  etilometro_serie: z.string().optional(),
+  etilometro_resultado: z.string().optional(),
+  etilometro_validade: z.string().optional(),
+  etilometro_realizado: z.boolean().optional(),
+  etilometro_justificativa: z.string().optional(), // Obrigatório se etilômetro NÃO utilizado
+  sinais_aparencia: z.array(z.string()).default([]),
+  sinais_atitude: z.array(z.string()).default([]),
+  teste_linha_reta: z.string().optional(),
+  teste_um_pe: z.string().optional(),
+  teste_dedo_nariz: z.string().optional(),
+  admitiu_ingestao: z.string().optional(),
+  ingestao_quantidade: z.string().optional(),
+  ingestao_tempo: z.string().optional(),
+  conclusao_tecnica: z.string().optional(),
 });
 
 
@@ -100,19 +120,20 @@ export function OcorrenciaMultiStepForm({ onClose, onSuccess, initialData, defau
 
   const [origemSelecionada, setOrigemSelecionada] = useState(!!initialData?.origem);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-
-
   const [photos, setPhotos] = useState<{file: File, preview: string}[]>([]);
   const autosaveTimer = useRef<NodeJS.Timeout | null>(null);
 
-  const { register, control, handleSubmit, watch, setValue, formState: { errors } } = useForm<OcorrenciaFormData>({
+  const isEmbriaguez = (initialData?.categoria || defaultCategoria) === 'embriaguez';
+  const totalSteps = isEmbriaguez ? 6 : 5;
+
+  const { register, control, handleSubmit, watch, setValue, reset, formState: { errors } } = useForm<OcorrenciaFormData>({
     resolver: zodResolver(ocorrenciaSchema),
     defaultValues: {
       categoria: initialData?.categoria || defaultCategoria,
       origem: initialData?.origem || (isAgent ? 'EQUIPE' : 'CENTRAL DE RÁDIO'),
       sub_origem: initialData?.sub_origem || '',
       descricao: initialData?.descricao || '',
-      natureza: initialData?.natureza || [],
+      natureza: initialData?.natureza || (isEmbriaguez ? ['Embriaguez em Via Pública'] : []),
       rua: initialData?.rua || '',
       bairro: initialData?.bairro || '',
       numero: initialData?.numero || '',
@@ -120,9 +141,11 @@ export function OcorrenciaMultiStepForm({ onClose, onSuccess, initialData, defau
       ponto_referencia: initialData?.ponto_referencia || '',
       coordenadas: initialData?.coordenadas || '',
       natureza_alteracao: initialData?.natureza_alteracao || '',
-      envolvidos: initialData?.envolvidos || [],
+      envolvidos: initialData?.envolvidos || (isEmbriaguez ? [{ nome_completo: '', tipo: 'Suspeito' }] : []),
+      sinais_aparencia: initialData?.sinais_aparencia || [],
+      sinais_atitude: initialData?.sinais_atitude || [],
+      etilometro_realizado: initialData?.etilometro_realizado || false,
     }
-
   });
 
   const { fields, append, remove } = useFieldArray({
@@ -142,6 +165,7 @@ export function OcorrenciaMultiStepForm({ onClose, onSuccess, initialData, defau
     { label: 'REDES SOCIAIS', desc: 'Monitoramento Digital', sub: [] },
     { label: 'CÂMERAS DE MONITORAMENTO', desc: 'Olho Vivo / Cerca Digital', sub: [] },
     { label: 'ÓRGÃOS PARCEIROS', desc: 'PM, SAMU, etc via Rádio', sub: [] },
+    { label: 'FORÇAS DE SEGURANÇA', desc: 'PM, PC, PRF, PF, Bombeiros', sub: ['Polícia Militar', 'Polícia Civil', 'PRF', 'Polícia Federal', 'Bombeiros'] },
   ];
 
   const filteredOrigemOptions = isNew 
@@ -164,6 +188,21 @@ export function OcorrenciaMultiStepForm({ onClose, onSuccess, initialData, defau
       case 3:
         return !!fields.rua && !!fields.bairro;
       case 4:
+        // Na embriaguez, o primeiro envolvido deve ter nome preenchido
+        return isEmbriaguez ? (fields.envolvidos?.length > 0 && !!fields.envolvidos[0].nome_completo) : true;
+      case 5:
+        if (isEmbriaguez) {
+          const etilometroUsado = fields.etilometro_realizado;
+          // Se etilômetro usado: resultado é obrigatório
+          const etilometroOk = etilometroUsado
+            ? !!fields.etilometro_resultado
+            : !!fields.etilometro_justificativa; // Se não usado: justificativa é obrigatória
+          // Se conclusão por sinais clínicos: pelo menos 1 sinal é obrigatório
+          const conclusaoPorSinais = fields.conclusao_tecnica === 'confirmada_sinais';
+          const hasSinais = (fields.sinais_aparencia?.length || 0) > 0 || (fields.sinais_atitude?.length || 0) > 0;
+          const sinaisOk = conclusaoPorSinais ? hasSinais : true;
+          return !!fields.conclusao_tecnica && etilometroOk && sinaisOk;
+        }
         return true;
       default:
         return true;
@@ -194,7 +233,7 @@ export function OcorrenciaMultiStepForm({ onClose, onSuccess, initialData, defau
     // Mapeamento conforme CHECK constraint do DB: ('RADIO', 'AGENTE', 'PARCEIRO')
     let origem_tipo: 'RADIO' | 'AGENTE' | 'PARCEIRO' = 'AGENTE';
     if (data.origem === 'CENTRAL DE RÁDIO' || data.origem === 'DENÚNCIA ANÔNIMA') origem_tipo = 'RADIO';
-    if (data.origem === 'ÓRGÃOS PARCEIROS') origem_tipo = 'PARCEIRO';
+    if (data.origem === 'ÓRGÃOS PARCEIROS' || data.origem === 'FORÇAS DE SEGURANÇA') origem_tipo = 'PARCEIRO';
 
     const payload: any = {
       instituicao_id: profile.instituicao_id,
@@ -211,34 +250,50 @@ export function OcorrenciaMultiStepForm({ onClose, onSuccess, initialData, defau
       referencia: data.ponto_referencia || '',
       coordenadas: data.coordenadas || '',
       // Colunas extras da migração 025
-      titulo: data.natureza?.[0] || 'Ocorrência em preenchimento',
+      titulo: isEmbriaguez ? `Embriaguez - ${data.envolvidos?.find((e:any) => e.tipo === 'Suspeito')?.nome_completo || 'Em preenchimento'}` : (data.natureza?.[0] || 'Ocorrência em preenchimento'),
       categoria: data.categoria || 'padrao',
       ultimo_passo: step,
       cep: data.cep || '',
       cidade: data.cidade || '',
       estado: data.estado || '',
-      canal_origem: data.sub_origem || ''
+      canal_origem: data.sub_origem || '',
+      
+      // Persistência Módulo Embriaguez no Rascunho
+      etilometro_marca: data.etilometro_marca,
+      etilometro_serie: data.etilometro_serie,
+      etilometro_resultado: data.etilometro_resultado,
+      etilometro_validade: data.etilometro_validade,
+      etilometro_realizado: data.etilometro_realizado,
+      sinais_aparencia: data.sinais_aparencia,
+      sinais_atitude: data.sinais_atitude,
+      teste_linha_reta: data.teste_linha_reta,
+      teste_um_pe: data.teste_um_pe,
+      teste_dedo_nariz: data.teste_dedo_nariz,
+      admitiu_ingestao: data.admitiu_ingestao,
+      ingestao_quantidade: data.ingestao_quantidade,
+      ingestao_tempo: data.ingestao_tempo,
+      conclusao_tecnica: data.conclusao_tecnica,
     };
 
 
 
 
 
+    const tableName = isEmbriaguez ? 'embriaguez' : 'ocorrencias';
+
     try {
       isSaving.current = true;
-      console.log('AUTO-SAVE Payload:', payload);
       if (draftId) {
-        const { error } = await supabase.from('ocorrencias').update(payload).eq('id', draftId);
+        const { error } = await supabase.from(tableName).update(payload).eq('id', draftId);
         if (error) throw error;
       } else {
-        const { data: newOc, error } = await supabase.from('ocorrencias').insert([payload]).select().single();
+        const { data: newOc, error } = await supabase.from(tableName).insert([payload]).select().single();
         if (error) {
           console.error('SUPABASE ERROR (Insert):', error);
           throw error;
         }
         if (newOc) {
            setDraftId(newOc.id);
-           console.log('Rascunho criado com ID:', newOc.id);
         }
       }
     } catch (err: any) {
@@ -262,7 +317,7 @@ export function OcorrenciaMultiStepForm({ onClose, onSuccess, initialData, defau
       // Mapeamento conforme CHECK constraint do DB: ('RADIO', 'AGENTE', 'PARCEIRO')
       let origem_tipo: 'RADIO' | 'AGENTE' | 'PARCEIRO' = 'AGENTE';
       if (data.origem === 'CENTRAL DE RÁDIO' || data.origem === 'DENÚNCIA ANÔNIMA') origem_tipo = 'RADIO';
-      if (data.origem === 'ÓRGÃOS PARCEIROS') origem_tipo = 'PARCEIRO';
+      if (data.origem === 'ÓRGÃOS PARCEIROS' || data.origem === 'FORÇAS DE SEGURANÇA') origem_tipo = 'PARCEIRO';
 
       const payload = {
         instituicao_id: profile.instituicao_id,
@@ -286,7 +341,24 @@ export function OcorrenciaMultiStepForm({ onClose, onSuccess, initialData, defau
         natureza_alteracao: data.natureza_alteracao || '',
         canal_origem: data.sub_origem || '',
         tipo_origem: data.sub_origem || '',
-        titulo: data.natureza?.[0] || 'Ocorrência registrada'
+        titulo: isEmbriaguez ? `Embriaguez - ${data.envolvidos.find(e => e.tipo === 'Condutor')?.nome_completo || 'Condutor'}` : (data.natureza?.[0] || 'Ocorrência registrada'),
+        
+        // Novos campos embriaguez
+        etilometro_marca: data.etilometro_marca,
+        etilometro_serie: data.etilometro_serie,
+        etilometro_resultado: data.etilometro_resultado,
+        etilometro_validade: data.etilometro_validade,
+        etilometro_realizado: data.etilometro_realizado,
+        etilometro_justificativa: data.etilometro_justificativa,
+        sinais_aparencia: data.sinais_aparencia,
+        sinais_atitude: data.sinais_atitude,
+        teste_linha_reta: data.teste_linha_reta,
+        teste_um_pe: data.teste_um_pe,
+        teste_dedo_nariz: data.teste_dedo_nariz,
+        admitiu_ingestao: data.admitiu_ingestao,
+        ingestao_quantidade: data.ingestao_quantidade,
+        ingestao_tempo: data.ingestao_tempo,
+        conclusao_tecnica: data.conclusao_tecnica,
 
 
 
@@ -329,14 +401,18 @@ export function OcorrenciaMultiStepForm({ onClose, onSuccess, initialData, defau
       };
 
 
+      const tableName = isEmbriaguez ? 'embriaguez' : 'ocorrencias';
+      const involvedTableName = isEmbriaguez ? 'embriaguez_envolvidos' : 'ocorrencia_envolvidos';
+      const foreignKeyName = isEmbriaguez ? 'embriaguez_id' : 'ocorrencia_id';
+
       if (currentId) {
-        const { error: updateError } = await supabase.from('ocorrencias').update(payloadFinal).eq('id', currentId);
+        const { error: updateError } = await supabase.from(tableName).update(payloadFinal).eq('id', currentId);
         if (updateError) {
           console.error('ERRO NO UPDATE FINAL:', updateError);
           throw updateError;
         }
       } else {
-        const { data: newOc, error: insertError } = await supabase.from('ocorrencias').insert([payloadFinal]).select().single();
+        const { data: newOc, error: insertError } = await supabase.from(tableName).insert([payloadFinal]).select().single();
         if (insertError) {
           console.error('ERRO NO INSERT FINAL:', insertError);
           throw insertError;
@@ -346,12 +422,12 @@ export function OcorrenciaMultiStepForm({ onClose, onSuccess, initialData, defau
 
 
       if (currentId) {
-        const { error: delError } = await supabase.from('ocorrencia_envolvidos').delete().eq('ocorrencia_id', currentId);
+        const { error: delError } = await supabase.from(involvedTableName).delete().eq(foreignKeyName, currentId);
         if (delError) console.warn('Erro ao limpar envolvidos:', delError);
 
         if (data.envolvidos.length > 0) {
-          const { error: invError } = await supabase.from('ocorrencia_envolvidos').insert(
-            data.envolvidos.map(e => ({ ...e, ocorrencia_id: currentId }))
+          const { error: invError } = await supabase.from(involvedTableName).insert(
+            data.envolvidos.map(e => ({ ...e, [foreignKeyName]: currentId }))
           );
           if (invError) {
             console.error('ERRO NOS ENVOLVIDOS:', invError);
@@ -406,15 +482,15 @@ export function OcorrenciaMultiStepForm({ onClose, onSuccess, initialData, defau
                 )}
               </div>
               <div className="flex items-center gap-2 mt-1">
-                {[1, 2, 3, 4, 5].map(i => (
+                {[...Array(totalSteps)].map((_, i) => (
                   <div 
-                    key={i} 
+                    key={i + 1} 
                     className={`h-1.5 rounded-full transition-all ${
-                      i === step ? 'w-8 bg-indigo-600' : i < step ? 'w-4 bg-indigo-300' : 'w-4 bg-slate-200'
+                      (i + 1) === step ? 'w-8 bg-indigo-600' : (i + 1) < step ? 'w-4 bg-indigo-300' : 'w-4 bg-slate-200'
                     }`} 
                   />
                 ))}
-                <span className="text-[10px] font-black text-slate-400 uppercase ml-2">Passo {step} de 5</span>
+                <span className="text-[10px] font-black text-slate-400 uppercase ml-2">Passo {step} de {totalSteps}</span>
               </div>
             </div>
           </div>
@@ -434,6 +510,10 @@ export function OcorrenciaMultiStepForm({ onClose, onSuccess, initialData, defau
           {step === 1 && (
             <div className="space-y-8 animate-in slide-in-from-right-4 duration-300">
               <div className="space-y-2">
+                <div className="flex items-center gap-2 text-slate-400">
+                   <MapPinCheck className="w-4 h-4" />
+                   <span className="text-[10px] font-black uppercase tracking-widest">Origem do Chamado</span>
+                </div>
                 <h3 className="text-lg font-black text-slate-900">Origem do Chamado</h3>
                 <p className="text-sm text-slate-500 font-medium">Como esta ocorrência foi reportada?</p>
               </div>
@@ -499,6 +579,10 @@ export function OcorrenciaMultiStepForm({ onClose, onSuccess, initialData, defau
           {step === 2 && (
             <div className="space-y-8 animate-in slide-in-from-right-4 duration-300">
               <div className="space-y-2">
+                <div className="flex items-center gap-2 text-slate-400">
+                   <ReceiptText className="w-4 h-4" />
+                   <span className="text-[10px] font-black uppercase tracking-widest">Descrição e Natureza</span>
+                </div>
                 <h3 className="text-lg font-black text-slate-900">Descrição e Natureza</h3>
                 <p className="text-sm text-slate-500 font-medium">Relate o fato e selecione os enquadramentos legais.</p>
               </div>
@@ -524,45 +608,18 @@ export function OcorrenciaMultiStepForm({ onClose, onSuccess, initialData, defau
                   name="natureza"
                   control={control}
                   render={({ field }) => (
-                    <NaturezaSelector selected={field.value} onChange={field.onChange} />
+                    <NaturezaSelector 
+                      selected={field.value} 
+                      onChange={field.onChange} 
+                      limitToEmbriaguez={isEmbriaguez}
+                      lockedItems={isEmbriaguez ? ['Embriaguez em Via Pública'] : []}
+                    />
                   )}
                 />
                 {errors.natureza && <p className="text-xs font-bold text-red-500">{errors.natureza.message}</p>}
               </div>
 
-              {watch('categoria') === 'embriaguez' && (
-                <div className="p-8 bg-indigo-50/50 border border-indigo-100 rounded-[2.5rem] space-y-6 animate-in fade-in zoom-in-95 duration-500">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-indigo-600 text-white rounded-xl flex items-center justify-center shadow-lg shadow-indigo-600/20">
-                      <Zap className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-black text-slate-900 uppercase tracking-widest">Módulo de Constatação de Embriaguez</h4>
-                      <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wide">Campo Adicional Obrigatório</p>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    <label className="text-[10px] font-black text-slate-700 uppercase tracking-widest">Natureza da Alteração</label>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {['Álcool', 'Drogas Ilícitas', 'Crise Psiquiátrica (sem álcool ou drogas)', 'Abstinência', 'Causa Médica (diabetes, AVC, epilepsia)'].map((opt) => (
-                        <button
-                          key={opt}
-                          type="button"
-                          onClick={() => setValue('natureza_alteracao', opt)}
-                          className={`px-6 py-4 rounded-2xl text-xs font-black text-left transition-all border ${
-                            watch('natureza_alteracao') === opt
-                              ? 'bg-indigo-600 border-indigo-600 text-white shadow-xl shadow-indigo-600/20 scale-[1.02]'
-                              : 'bg-white border-slate-200 text-slate-600 hover:border-indigo-600/30 hover:bg-slate-50'
-                          }`}
-                        >
-                          {opt}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
+              {/* Natureza da Alteração removida - Integrada no Passo 5 Técnico */}
             </div>
           )}
 
@@ -613,7 +670,7 @@ export function OcorrenciaMultiStepForm({ onClose, onSuccess, initialData, defau
                 </div>
                 <button 
                   type="button"
-                  onClick={() => append({ nome_completo: '', tipo: 'Vítima' })}
+                  onClick={() => append({ nome_completo: '', tipo: isEmbriaguez ? 'Testemunha' : 'Vítima' })}
                   className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-600/20"
                 >
                   <UserPlus className="w-4 h-4" /> Novo Envolvido
@@ -624,17 +681,21 @@ export function OcorrenciaMultiStepForm({ onClose, onSuccess, initialData, defau
                 {fields.map((field, index) => (
                   <div key={field.id} className="p-8 bg-white border border-slate-200 rounded-[2.5rem] shadow-sm space-y-8 relative overflow-hidden group">
                     <div className="absolute top-0 left-0 w-2 h-full bg-indigo-600" />
-                    <button 
-                      type="button"
-                      onClick={() => remove(index)}
-                      className="absolute top-6 right-6 p-3 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all"
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </button>
+                    {(!isEmbriaguez || index > 0) && (
+                      <button 
+                        type="button"
+                        onClick={() => remove(index)}
+                        className="absolute top-6 right-6 p-3 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all"
+                      >
+                        <Trash2 className="w-5 h-5" />
+                      </button>
+                    )}
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Nome Completo</label>
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                          {isEmbriaguez && index === 0 ? 'Nome do Condutor' : 'Nome Completo'}
+                        </label>
                         <input 
                           {...register(`envolvidos.${index}.nome_completo`)}
                           className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-indigo-600/10 outline-none"
@@ -647,7 +708,7 @@ export function OcorrenciaMultiStepForm({ onClose, onSuccess, initialData, defau
                           className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-indigo-600/10 outline-none"
                         >
                           <option value="Vítima">Vítima</option>
-                          <option value="Suspeito">Suspeito</option>
+                          <option value="Suspeito">Suspeito (Condutor/Infrator)</option>
                           <option value="Testemunha">Testemunha</option>
                           <option value="Informante">Informante</option>
                           <option value="Outro">Outro</option>
@@ -748,12 +809,258 @@ export function OcorrenciaMultiStepForm({ onClose, onSuccess, initialData, defau
             </div>
           )}
 
-          {step === 5 && (
+          {step === 5 && isEmbriaguez && (
+            <div className="space-y-10 animate-in slide-in-from-right-4 duration-300">
+              <div className="space-y-2">
+                 <div className="flex items-center gap-2 text-slate-400">
+                   <ClipboardList className="w-4 h-4" />
+                   <span className="text-[10px] font-black uppercase tracking-widest">Módulo Técnico</span>
+                </div>
+                <h3 className="text-lg font-black text-slate-900">Módulo de Constatação de Embriaguez</h3>
+                <p className="text-sm text-slate-500 font-medium">Dados do etilômetro e sinais clínicos observados.</p>
+              </div>
+
+              {/* 5.1 Etilômetro */}
+              <div className="p-8 bg-slate-50 rounded-[2.5rem] border border-slate-100 space-y-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Activity className="w-5 h-5 text-indigo-600" />
+                    <h4 className="text-sm font-black text-slate-900 uppercase tracking-widest">Etilômetro (Bafômetro)</h4>
+                  </div>
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <span className="text-xs font-bold text-slate-500 uppercase">Teste realizado?</span>
+                    <div className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" {...register('etilometro_realizado')} className="sr-only peer" />
+                      <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                    </div>
+                  </label>
+                </div>
+
+                {watch('etilometro_realizado') ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 animate-in fade-in">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Marca <span className="text-red-400">*</span></label>
+                      <input {...register('etilometro_marca')} className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm" placeholder="Ex: Bafômetro Intoxilyzer" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Nº de Série <span className="text-red-400">*</span></label>
+                      <input {...register('etilometro_serie')} className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Resultado (mg/L) <span className="text-red-400">*</span></label>
+                      <input {...register('etilometro_resultado')} type="number" step="0.01" min="0" className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-black text-indigo-600" placeholder="0.00" />
+                      {watch('etilometro_resultado') && Number(watch('etilometro_resultado')) >= 0.34 && (
+                        <p className="text-[10px] font-black text-red-500 flex items-center gap-1">
+                          ⚠️ ACIMA DO LIMITE LEGAL (0,34 mg/L) — Possível crime
+                        </p>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Validade Calibração <span className="text-red-400">*</span></label>
+                      <input {...register('etilometro_validade')} type="date" className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm" />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="animate-in fade-in space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                      Motivo da Não Realização do Teste <span className="text-red-400">*</span>
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {[
+                        'Aparelho indisponível',
+                        'Condutor recusou o teste',
+                        'Condutor em estado inconsciente',
+                        'Outra razão (descrever abaixo)'
+                      ].map(motivo => (
+                        <button
+                          key={motivo}
+                          type="button"
+                          onClick={() => setValue('etilometro_justificativa', motivo)}
+                          className={`px-4 py-3 rounded-xl text-xs font-bold text-left transition-all border ${
+                            watch('etilometro_justificativa') === motivo
+                              ? 'bg-amber-600 border-amber-600 text-white shadow-md'
+                              : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                          }`}
+                        >
+                          {motivo}
+                        </button>
+                      ))}
+                    </div>
+                    {watch('etilometro_justificativa') === 'Outra razão (descrever abaixo)' && (
+                      <textarea
+                        {...register('etilometro_justificativa')}
+                        rows={2}
+                        placeholder="Descreva o motivo..."
+                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm resize-none outline-none"
+                      />
+                    )}
+                    {!watch('etilometro_justificativa') && (
+                      <p className="text-[10px] font-bold text-amber-600">Selecione ou descreva o motivo para continuar.</p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* 5.2 Sinais */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-4">
+                  <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Aparência</h4>
+                  <div className="grid grid-cols-1 gap-2">
+                    <Controller
+                      name="sinais_aparencia"
+                      control={control}
+                      render={({ field }) => (
+                        <>
+                          {['Olhos vermelhos', 'Hálito etílico', 'Descoordenação motora', 'Fala pastosa', 'Vestimenta desarrumada', 'Face ruborizada', 'Sonolência aparente', 'Agitação psicomotora', 'Náusea ou vômito'].map(s => (
+                            <button
+                              key={s}
+                              type="button"
+                              onClick={() => {
+                                const val = field.value || [];
+                                field.onChange(val.includes(s) ? val.filter(v => v !== s) : [...val, s]);
+                              }}
+                              className={`px-4 py-3 rounded-xl text-xs font-bold text-left transition-all border ${
+                                (field.value || []).includes(s) ? 'bg-indigo-600 border-indigo-600 text-white shadow-md' : 'bg-white border-slate-100 text-slate-500 hover:bg-slate-50'
+                              }`}
+                            >
+                              {s}
+                            </button>
+                          ))}
+                        </>
+                      )}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Atitude</h4>
+                  <div className="grid grid-cols-1 gap-2">
+                    <Controller
+                      name="sinais_atitude"
+                      control={control}
+                      render={({ field }) => (
+                        <>
+                          {['Agressividade / Hostilidade', 'Eufórico / Excitado', 'Sonolento / Letárgico', 'Confuso / Desorientado', 'Cooperativo / Calmo'].map(s => (
+                            <button
+                              key={s}
+                              type="button"
+                              onClick={() => {
+                                const val = field.value || [];
+                                field.onChange(val.includes(s) ? val.filter(v => v !== s) : [...val, s]);
+                              }}
+                              className={`px-4 py-3 rounded-xl text-xs font-bold text-left transition-all border ${
+                                (field.value || []).includes(s) ? 'bg-indigo-600 border-indigo-600 text-white shadow-md' : 'bg-white border-slate-100 text-slate-500 hover:bg-slate-50'
+                              }`}
+                            >
+                              {s}
+                            </button>
+                          ))}
+                        </>
+                      )}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* 5.3 Testes de Equilíbrio */}
+              <div className="p-8 bg-indigo-50/30 rounded-[2.5rem] border border-indigo-100 space-y-6">
+                 <h4 className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Testes de Equilíbrio e Coordenação</h4>
+                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {[
+                      { name: 'Andar em linha reta', key: 'teste_linha_reta' },
+                      { name: 'Apoiar-se em um pé', key: 'teste_um_pe' },
+                      { name: 'Tocar o dedo no nariz', key: 'teste_dedo_nariz' }
+                    ].map(t => (
+                      <div key={t.key} className="space-y-2">
+                        <label className="text-[10px] font-black text-slate-500 uppercase">{t.name}</label>
+                        <select {...register(t.key as any)} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs">
+                           <option value="">Não realizado</option>
+                           <option value="Aprovado">Aprovado</option>
+                           <option value="Reprovado">Reprovado</option>
+                        </select>
+                      </div>
+                    ))}
+                 </div>
+              </div>
+
+              {/* 5.4 Relato de Ingestão */}
+              <div className="p-8 bg-white border border-slate-200 rounded-[2.5rem] shadow-sm space-y-6">
+                 <div className="flex items-center gap-3">
+                    <Beer className="w-5 h-5 text-amber-500" />
+                    <h4 className="text-sm font-black text-slate-900 uppercase tracking-widest">Relato de Ingestão de Álcool</h4>
+                 </div>
+                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Admitiu ingestão?</label>
+                      <select {...register('admitiu_ingestao')} className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold">
+                         <option value="">Selecione...</option>
+                         <option value="Sim">Sim</option>
+                         <option value="Não">Não</option>
+                         <option value="Não respondeu">Não respondeu</option>
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Quantidade informada</label>
+                      <input {...register('ingestao_quantidade')} placeholder="Ex: 3 latas de cerveja" className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Há quanto tempo?</label>
+                      <input {...register('ingestao_tempo')} placeholder="Ex: 1 hora" className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm" />
+                    </div>
+                 </div>
+              </div>
+
+              {/* 5.5 Conclusão */}
+              <div className="space-y-4">
+                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Conclusão Técnica do Agente</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {[
+                    { label: 'Embriaguez confirmada por etilômetro', val: 'confirmada_etilometro' },
+                    { label: 'Embriaguez confirmada por sinais clínicos', val: 'confirmada_sinais' },
+                    { label: 'Embriaguez não confirmada', val: 'nao_confirmada' },
+                    { label: 'Recusa ao teste', val: 'recusa' },
+                  ].map(c => (
+                    <button
+                      key={c.val}
+                      type="button"
+                      onClick={() => setValue('conclusao_tecnica', c.val)}
+                      className={`px-6 py-4 rounded-2xl text-xs font-black text-left transition-all border ${
+                        watch('conclusao_tecnica') === c.val ? 'bg-indigo-600 border-indigo-600 text-white shadow-xl' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                      }`}
+                    >
+                      {c.label}
+                    </button>
+                  ))}
+                </div>
+                {errors.conclusao_tecnica && <p className="text-xs font-bold text-red-500">Selecione uma conclusão técnica.</p>}
+              </div>
+            </div>
+          )}
+
+          {((step === 5 && !isEmbriaguez) || (step === 6 && isEmbriaguez)) && (
             <div className="space-y-8 animate-in slide-in-from-right-4 duration-300">
               <div className="space-y-2">
                 <h3 className="text-lg font-black text-slate-900">Anexos e Fotos</h3>
                 <p className="text-sm text-slate-500 font-medium">Insira até 10 fotos comprovando os fatos.</p>
               </div>
+
+              {isEmbriaguez && (
+                <div className="p-5 bg-amber-50 border border-amber-200 rounded-2xl">
+                  <p className="text-xs font-black text-amber-700 uppercase tracking-widest mb-3">Recomendações de Foto para Embriaguez</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    {[
+                      { icon: '🧑', text: 'Foto do condutor (rosto visível)' },
+                      { icon: '📱', text: 'Etilômetro exibindo o resultado' },
+                      { icon: '📍', text: 'Local da abordagem / via' },
+                    ].map(rec => (
+                      <div key={rec.text} className="flex items-center gap-2 text-xs font-bold text-amber-800">
+                        <span className="text-lg">{rec.icon}</span>
+                        <span>{rec.text}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                 {photos.map((photo, index) => (
@@ -819,7 +1126,7 @@ export function OcorrenciaMultiStepForm({ onClose, onSuccess, initialData, defau
           </button>
 
           <div className="flex items-center gap-4">
-            {step < 5 ? (
+            {step < totalSteps ? (
               <button 
                 onClick={nextStep}
                 disabled={!canProceed}

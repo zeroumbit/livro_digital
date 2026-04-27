@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { OcorrenciaMultiStepForm } from '@/components/forms/OcorrenciaMultiStepForm';
+import { MariaDaPenhaForm } from '@/components/forms/MariaDaPenhaForm';
 import { toast } from 'sonner';
 
 const CATEGORIAS: Record<string, { defaultCategoria: 'padrao' | 'maria_da_penha' | 'embriaguez'; title: string }> = {
-  'padrao': { defaultCategoria: 'padrao', title: 'Nova Ocorrência' },
   'padrao': { defaultCategoria: 'padrao', title: 'Nova Ocorrência Padrão' },
   'embriaguez': { defaultCategoria: 'embriaguez', title: 'Operação Embriaguez ao Volante' },
   'maria-da-penha': { defaultCategoria: 'maria_da_penha', title: 'Ocorrência Maria da Penha' },
@@ -37,12 +37,19 @@ export function CreateOcorrenciaPage() {
 
   return (
     <div className="min-h-screen bg-slate-100">
-      <OcorrenciaMultiStepForm 
-        onClose={handleClose} 
-        onSuccess={handleSuccess}
-        defaultCategoria={categoria}
-        categoriaLabel={tipo || 'padrao'}
-      />
+      {categoria === 'maria_da_penha' ? (
+        <MariaDaPenhaForm 
+          onClose={handleClose} 
+          onSuccess={handleSuccess}
+        />
+      ) : (
+        <OcorrenciaMultiStepForm 
+          onClose={handleClose} 
+          onSuccess={handleSuccess}
+          defaultCategoria={categoria}
+          categoriaLabel={tipo || 'padrao'}
+        />
+      )}
     </div>
   );
 }

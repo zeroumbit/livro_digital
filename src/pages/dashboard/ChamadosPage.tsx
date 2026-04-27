@@ -101,9 +101,8 @@ export function ChamadosPage() {
                           numero: c.numero,
                           referencia: c.referencia,
                           descricao: `CHAMADO: ${c.solicitante_nome}\nTELEFONE: ${c.solicitante_telefone}\nDESCRIÇÃO: ${c.descricao}`,
-                          origem: 'CENTRAL DE RÁDIO',
-                          tipo_origem: 'Rádio'
-
+                          origem: c.origem || 'CENTRAL DE RÁDIO',
+                          sub_origem: c.tipo_origem || 'Rádio'
                         });
                         setIsOcFormOpen(true);
                       }}

@@ -1,5 +1,18 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import html2pdf from 'html2pdf.js';
+declare module 'html2pdf.js' {
+  interface Html2PdfOptions {
+    margin?: number | number[];
+    filename?: string;
+    image?: { type?: string; quality?: number };
+    html2canvas?: { scale?: number; useCORS?: boolean };
+    jsPDF?: { unit?: string; format?: string; orientation?: string };
+  }
+  function set(options: Html2PdfOptions): any;
+  function from(element: any): any;
+  function save(): Promise<void>;
+}
 import { 
   Plus, 
   Search, 
@@ -34,10 +47,6 @@ import {
   Image as ImageIcon
 } from 'lucide-react';
 
-
-
-
-import { supabase } from '@/lib/supabase';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useAuthStore } from '@/store/useAuthStore';
 
@@ -271,7 +280,7 @@ const HorarioModal: React.FC<{isOpen: boolean; onClose: () => void; onApply: (in
   );
 };
 
-const OcorrenciaRow = React.memo(({ oc, onOpenDetails, onEdit, onDelete }: any) => {
+const OcorrenciaRow = React.memo(({ oc, onOpenDetails, onEdit, onDelete, onOpenAnotacoes, onDownloadPdf, onPrint }: any) => {
   return (
     <tr className="hover:bg-slate-50/50 transition-colors group">
       <td className="px-8 py-6">
@@ -325,7 +334,7 @@ const OcorrenciaRow = React.memo(({ oc, onOpenDetails, onEdit, onDelete }: any) 
           
           {oc.status === 'finalizada' && (
             <button 
-              onClick={() => onOpenDetails(oc)}
+              onClick={() => onOpenAnotacoes(oc)}
               title="Adicionar anotações / histórico"
               className="p-2.5 text-amber-500 hover:text-amber-600 hover:bg-amber-50 rounded-xl shadow-sm border border-transparent hover:border-amber-200 transition-all"
             >
@@ -333,6 +342,22 @@ const OcorrenciaRow = React.memo(({ oc, onOpenDetails, onEdit, onDelete }: any) 
             </button>
           )}
 
+          <button 
+            onClick={() => onDownloadPdf(oc)}
+            title="Baixar PDF"
+            className="p-2.5 text-slate-400 hover:text-indigo-600 hover:bg-white rounded-xl shadow-sm border border-transparent hover:border-slate-200 transition-all"
+          >
+            <Download className="w-4 h-4" />
+          </button>
+
+          <button 
+            onClick={() => onPrint(oc)}
+            title="Imprimir"
+            className="p-2.5 text-slate-400 hover:text-indigo-600 hover:bg-white rounded-xl shadow-sm border border-transparent hover:border-slate-200 transition-all"
+          >
+            <Printer className="w-4 h-4" />
+          </button>
+          
           
           {oc.status === 'rascunho' && (
             <button 
@@ -368,7 +393,7 @@ export function OcorrenciasPage({ categoria = 'padrao', title = 'Registro de Oco
   const navigate = useNavigate();
 
   const profile = useAuthStore(state => state.profile);
-  const { data: ocorrenciasData, isLoading: loading, refetch: fetchOcorrencias } = useOccurrences();
+  const { data: ocorrenciasData, isLoading: loading, refetch: fetchOcorrencias } = useOccurrences(categoria);
   const ocorrencias = (ocorrenciasData as any[]) || [];
   
   const [searchTerm, setSearchTerm] = useState('');
@@ -387,6 +412,7 @@ export function OcorrenciasPage({ categoria = 'padrao', title = 'Registro de Oco
   const [envolvidos, setEnvolvidos] = useState<any[]>([]);
   const [novaAnotacao, setNovaAnotacao] = useState('');
   const [sendingNota, setSendingNota] = useState(false);
+  const [isAnotacoesOpen, setIsAnotacoesOpen] = useState(false);
 
 
   const [filterTipo, setFilterTipo] = useState<string>('');
@@ -435,21 +461,34 @@ export function OcorrenciasPage({ categoria = 'padrao', title = 'Registro de Oco
     fetchEnvolvidos(oc.id);
   };
 
+  const openAnotacoes = async (oc: any) => {
+    setSelectedOc(oc);
+    setIsAnotacoesOpen(true);
+    fetchAnotacoes(oc.id);
+  };
+
   const fetchEnvolvidos = async (id: string) => {
+    if (categoria === 'maria_da_penha') {
+      setEnvolvidos([]); // Vítima e agressor já estão nos campos da tabela
+      return;
+    }
     const { data } = await supabase
-      .from('ocorrencia_envolvidos')
+      .from(categoria === 'embriaguez' ? 'embriaguez_envolvidos' : 'ocorrencia_envolvidos')
       .select('*')
-      .eq('ocorrencia_id', id);
+      .eq(categoria === 'embriaguez' ? 'embriaguez_id' : 'ocorrencia_id', id);
     if (data) setEnvolvidos(data);
     else setEnvolvidos([]);
   };
 
 
   const fetchAnotacoes = async (id: string) => {
+    const tableName = categoria === 'maria_da_penha' ? 'maria_da_penha_anotacoes' : categoria === 'embriaguez' ? 'embriaguez_anotacoes' : 'ocorrencia_anotacoes';
+    const idField = categoria === 'maria_da_penha' ? 'mdp_id' : categoria === 'embriaguez' ? 'embriaguez_id' : 'ocorrencia_id';
+    
     const { data: anotacoesData } = await supabase
-      .from('ocorrencia_anotacoes')
+      .from(tableName)
       .select('*')
-      .eq('ocorrencia_id', id)
+      .eq(idField, id)
       .order('created_at', { ascending: true });
 
     
@@ -474,8 +513,12 @@ export function OcorrenciasPage({ categoria = 'padrao', title = 'Registro de Oco
   const handleAddAnotacao = async () => {
     if (!novaAnotacao.trim() || novaAnotacao.length < 10 || !selectedOc || !profile?.id) return;
     setSendingNota(true);
-    const { error } = await supabase.from('ocorrencia_anotacoes').insert([{
-      ocorrencia_id: selectedOc.id,
+    
+    const tableName = categoria === 'maria_da_penha' ? 'maria_da_penha_anotacoes' : categoria === 'embriaguez' ? 'embriaguez_anotacoes' : 'ocorrencia_anotacoes';
+    const idField = categoria === 'maria_da_penha' ? 'mdp_id' : categoria === 'embriaguez' ? 'embriaguez_id' : 'ocorrencia_id';
+
+    const { error } = await supabase.from(tableName).insert([{
+      [idField]: selectedOc.id,
       usuario_id: profile.id,
       texto: novaAnotacao
     }]);
@@ -504,8 +547,9 @@ export function OcorrenciasPage({ categoria = 'padrao', title = 'Registro de Oco
     setDeleting(true);
     
     try {
+      const tableName = categoria === 'maria_da_penha' ? 'maria_da_penha' : categoria === 'embriaguez' ? 'embriaguez' : 'ocorrencias';
       const { error } = await supabase
-        .from('ocorrencias')
+        .from(tableName)
         .delete()
         .eq('id', selectedOc.id);
 
@@ -531,9 +575,123 @@ export function OcorrenciasPage({ categoria = 'padrao', title = 'Registro de Oco
     navigate(`/editar/ocorrencia/${oc.id}`);
   };
 
+  const handleDownloadPdf = async (oc: any) => {
+    toast.info('Gerando PDF...');
+    const printContent = generatePrintContent(oc);
+    
+    const container = document.createElement('div');
+    container.innerHTML = printContent;
+    container.style.position = 'absolute';
+    container.style.left = '-9999px';
+    document.body.appendChild(container);
+
+    const opt = {
+      margin: 10,
+      filename: `OC-${oc.numero_oficial}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+
+    try {
+      await html2pdf().set(opt).from(container).save();
+      toast.success('PDF baixado com sucesso!');
+    } catch (error) {
+      console.error(error);
+      toast.error('Erro ao gerar PDF');
+    } finally {
+      document.body.removeChild(container);
+    }
+  };
+
+  const handlePrint = (oc: any) => {
+    const printContent = generatePrintContent(oc);
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+      printWindow.print();
+    }
+  };
+
+  const generatePrintContent = (oc: any): string => {
+    const data = new Date(oc.created_at).toLocaleString('pt-BR');
+    return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>OC-${oc.numero_oficial}</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; padding: 40px; color: #1e293b; }
+    .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #4f46e5; padding-bottom: 20px; }
+    .header h1 { font-size: 28px; color: #4f46e5; margin-bottom: 5px; }
+    .status { display: inline-block; padding: 5px 15px; background: ${oc.status === 'finalizada' ? '#dcfce7' : '#fef3c7'}; 
+              color: ${oc.status === 'finalizada' ? '#16a34a' : '#d97706'}; border-radius: 20px; font-size: 12px; font-weight: bold; text-transform: uppercase; }
+    .section { margin-bottom: 25px; }
+    .section h3 { font-size: 14px; color: #64748b; text-transform: uppercase; margin-bottom: 10px; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+    .field { margin-bottom: 10px; }
+    .field label { display: block; font-size: 10px; color: #94a3b8; text-transform: uppercase; }
+    .field span { font-size: 14px; font-weight: 600; }
+    .naturezas { display: flex; flex-wrap: wrap; gap: 8px; }
+    .natureza { background: #e0e7ff; color: #4f46e5; padding: 5px 12px; border-radius: 15px; font-size: 12px; font-weight: bold; }
+    .descricao { background: #f8fafc; padding: 20px; border-radius: 10px; font-style: italic; line-height: 1.6; }
+    .footer { margin-top: 40px; text-align: center; font-size: 12px; color: #94a3b8; }
+    @media print { body { padding: 20px; } }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>OCORRÊNCIA OC-${oc.numero_oficial}</h1>
+    <span class="status">${oc.status}</span>
+    <p style="margin-top: 10px; font-size: 12px; color: #64748b;">${data}</p>
+  </div>
+
+  <div class="section">
+    <h3>Origem do Registro</h3>
+    <div class="grid">
+      <div class="field"><label>Iniciado por</label><span>${oc.origem || 'NÃO INFORMADO'}</span></div>
+      <div class="field"><label>Canal</label><span>${oc.tipo_origem || 'DIRETO / CAMPO'}</span></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h3>Natureza do Fato</h3>
+    <div class="naturezas">
+      ${(oc.natureza || []).map((n: string) => `<span class="natureza">${n}</span>`).join('')}
+    </div>
+  </div>
+
+  <div class="section">
+    <h3>Localização</h3>
+    <div class="grid">
+      <div class="field"><label>Rua/Logradouro</label><span>${oc.rua || '---'}</span></div>
+      <div class="field"><label>Número</label><span>${oc.numero || 'S/N'}</span></div>
+      <div class="field"><label>Bairro</label><span>${oc.bairro || '---'}</span></div>
+      <div class="field"><label>CEP</label><span>${oc.cep || '---'}</span></div>
+      <div class="field"><label>Cidade/Estado</label><span>${oc.cidade || '---'} ${oc.estado ? '- ' + oc.estado : ''}</span></div>
+    </div>
+    ${oc.referencia ? `<div class="field" style="margin-top:15px"><label>Ponto de Referência</label><span>"${oc.referencia}"</span></div>` : ''}
+  </div>
+
+  <div class="section">
+    <h3>Relato dos Fatos</h3>
+    <div class="descricao">"${oc.descricao || 'Sem descrição'}"</div>
+  </div>
+
+  <div class="footer">
+    <p>Documento gerado em ${new Date().toLocaleString('pt-BR')}</p>
+  </div>
+</body>
+</html>`;
+  };
+
   const filtered = useMemo(() => {
     return ocorrencias.filter(oc => {
-      if (oc.categoria !== categoria) return false;
+      // Isolamento já feito pelo hook/tabela
+      // if (oc.categoria !== categoria) return false;
 
       const matchSearch = !searchTerm || 
         oc.natureza?.join(' ').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -746,7 +904,7 @@ export function OcorrenciasPage({ categoria = 'padrao', title = 'Registro de Oco
                 <th className="px-6 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Origem</th>
                 <th className="px-6 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Localização</th>
                 <th className="px-6 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</th>
-                <th className="px-8 py-6 text-right"></th>
+                <th className="px-8 py-6 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50 text-sm">
@@ -755,7 +913,16 @@ export function OcorrenciasPage({ categoria = 'padrao', title = 'Registro de Oco
               ) : filtered.length === 0 ? (
                 <tr><td colSpan={6} className="p-12 text-center text-slate-400">Nenhum registro encontrado.</td></tr>
               ) : filtered.map((oc) => (
-                <OcorrenciaRow key={oc.id} oc={oc} onOpenDetails={openDetails} onEdit={handleEdit} onDelete={handleDeleteClick} />
+<OcorrenciaRow 
+                    key={oc.id} 
+                    oc={oc} 
+                    onOpenDetails={openDetails} 
+                    onEdit={handleEdit} 
+                    onDelete={handleDeleteClick} 
+                    onOpenAnotacoes={openAnotacoes}
+                    onDownloadPdf={handleDownloadPdf}
+                    onPrint={handlePrint}
+                  />
               ))}
             </tbody>
           </table>
@@ -865,6 +1032,65 @@ export function OcorrenciasPage({ categoria = 'padrao', title = 'Registro de Oco
                   </div>
                 </section>
 
+                {/* 2.1 Módulo Técnico de Embriaguez (Se aplicável) */}
+                {selectedOc.categoria === 'embriaguez' && (
+                  <section className="space-y-4">
+                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                      <ClipboardList className="w-3 h-3 text-indigo-500" /> Constatação Técnica de Embriaguez
+                    </h4>
+                    <div className="p-8 bg-indigo-50/30 rounded-[2.5rem] border border-indigo-100 space-y-8">
+                      {/* Conclusão */}
+                      <div className="flex items-center gap-4">
+                        <div className="px-5 py-3 bg-indigo-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-lg shadow-indigo-600/20">
+                          {selectedOc.conclusao_tecnica?.replace('_', ' ') || 'SEM CONCLUSÃO REGISTRADA'}
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        {/* Etilômetro */}
+                        <div className="space-y-3">
+                          <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest block">Etilômetro</span>
+                          {selectedOc.etilometro_realizado ? (
+                            <div className="space-y-2">
+                              <p className="text-sm font-bold text-slate-700">Resultado: <span className="text-indigo-600">{selectedOc.etilometro_resultado} mg/L</span></p>
+                              <p className="text-[10px] text-slate-400 font-medium uppercase">{selectedOc.etilometro_marca} • SN: {selectedOc.etilometro_serie}</p>
+                            </div>
+                          ) : (
+                            <p className="text-xs text-slate-500 italic">Teste de etilômetro não realizado.</p>
+                          )}
+                        </div>
+
+                        {/* Ingestão */}
+                        <div className="space-y-3">
+                          <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest block">Relato de Ingestão</span>
+                          <p className="text-sm font-bold text-slate-700">{selectedOc.admitiu_ingestao === 'Sim' ? 'Admitiu Ingestão' : 'Negou ou Não Respondeu'}</p>
+                          {selectedOc.ingestao_quantidade && <p className="text-xs text-slate-500">{selectedOc.ingestao_quantidade} ({selectedOc.ingestao_tempo})</p>}
+                        </div>
+                      </div>
+
+                      {/* Sinais */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-6 border-t border-indigo-100/50">
+                        <div className="space-y-3">
+                          <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest block">Sinais de Aparência</span>
+                          <div className="flex flex-wrap gap-1.5">
+                            {selectedOc.sinais_aparencia?.length > 0 ? selectedOc.sinais_aparencia.map((s: string, i: number) => (
+                              <span key={i} className="px-2 py-1 bg-white border border-indigo-100 rounded-lg text-[9px] font-bold text-indigo-600 uppercase">{s}</span>
+                            )) : <span className="text-[10px] text-slate-400 italic">Nenhum sinal registrado</span>}
+                          </div>
+                        </div>
+                        <div className="space-y-3">
+                          <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest block">Sinais de Atitude</span>
+                          <div className="flex flex-wrap gap-1.5">
+                            {selectedOc.sinais_atitude?.length > 0 ? selectedOc.sinais_atitude.map((s: string, i: number) => (
+                              <span key={i} className="px-2 py-1 bg-white border border-indigo-100 rounded-lg text-[9px] font-bold text-indigo-600 uppercase">{s}</span>
+                            )) : <span className="text-[10px] text-slate-400 italic">Nenhum sinal registrado</span>}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+                )}
+
                 {/* 3. Localização */}
                 <section className="space-y-4">
                   <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
@@ -957,7 +1183,89 @@ export function OcorrenciasPage({ categoria = 'padrao', title = 'Registro de Oco
                   </div>
                 </section>
 
-                {/* 5. Envolvidos */}
+                {/* --- SEÇÃO ESPECÍFICA DE MARIA DA PENHA --- */}
+                {selectedOc.categoria === 'maria_da_penha' && (
+                  <>
+                    {/* Vítima */}
+                    <section className="space-y-4">
+                      <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                        <User className="w-3 h-3 text-indigo-500" /> Dados da Vítima
+                      </h4>
+                      <div className="p-6 bg-slate-50 border border-slate-200 rounded-[2rem] grid grid-cols-2 gap-4">
+                        <div>
+                          <span className="text-[9px] font-black text-slate-400 uppercase block mb-1">Nome</span>
+                          <p className="text-sm font-bold">{selectedOc.vitima_nome}</p>
+                        </div>
+                        <div>
+                          <span className="text-[9px] font-black text-slate-400 uppercase block mb-1">Vínculo com Agressor</span>
+                          <p className="text-sm font-bold">{selectedOc.vitima_vinculo_agressor}</p>
+                        </div>
+                        <div>
+                          <span className="text-[9px] font-black text-slate-400 uppercase block mb-1">Contato</span>
+                          <p className="text-sm font-bold">{selectedOc.vitima_telefone || '---'}</p>
+                        </div>
+                        <div>
+                          <span className="text-[9px] font-black text-slate-400 uppercase block mb-1">Tem filhos?</span>
+                          <p className="text-sm font-bold">{selectedOc.vitima_tem_filhos ? `Sim (${selectedOc.vitima_num_filhos} - No local: ${selectedOc.vitima_filhos_no_local ? 'Sim' : 'Não'})` : 'Não'}</p>
+                        </div>
+                      </div>
+                    </section>
+
+                    {/* Agressor */}
+                    <section className="space-y-4">
+                      <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                        <User className="w-3 h-3 text-red-500" /> Dados do Agressor
+                      </h4>
+                      <div className="p-6 bg-slate-50 border border-slate-200 rounded-[2rem] grid grid-cols-2 gap-4">
+                        <div>
+                          <span className="text-[9px] font-black text-slate-400 uppercase block mb-1">Nome</span>
+                          <p className="text-sm font-bold">{selectedOc.agressor_nome}</p>
+                        </div>
+                        <div>
+                          <span className="text-[9px] font-black text-slate-400 uppercase block mb-1">Possui arma?</span>
+                          <p className="text-sm font-bold text-red-600">{selectedOc.agressor_possui_arma}</p>
+                        </div>
+                        <div>
+                          <span className="text-[9px] font-black text-slate-400 uppercase block mb-1">Uso de Álcool / Drogas</span>
+                          <p className="text-sm font-bold">{selectedOc.agressor_usa_alcool} / {selectedOc.agressor_usa_drogas}</p>
+                        </div>
+                      </div>
+                    </section>
+
+                    {/* Avaliação FONAR */}
+                    <section className="space-y-4">
+                      <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                        <AlertCircle className="w-3 h-3 text-amber-500" /> Risco FONAR
+                      </h4>
+                      <div className={`p-6 rounded-[2rem] border ${
+                        selectedOc.nivel_risco === 'Elevado' ? 'bg-red-50 border-red-200 text-red-900' :
+                        selectedOc.nivel_risco === 'Médio' ? 'bg-amber-50 border-amber-200 text-amber-900' :
+                        'bg-blue-50 border-blue-200 text-blue-900'
+                      }`}>
+                        <span className="text-[9px] font-black uppercase block mb-1">Nível de Risco Identificado</span>
+                        <p className="text-lg font-black uppercase">{selectedOc.nivel_risco || 'Baixo'}</p>
+                        
+                        <div className="mt-4 pt-4 border-t border-current/20 grid grid-cols-2 gap-4">
+                           <div>
+                              <span className="text-[9px] font-black uppercase block mb-1">Lesões Visíveis</span>
+                              <p className="text-sm font-bold">{selectedOc.lesoes_visiveis ? 'Sim' : 'Não'}</p>
+                           </div>
+                           <div>
+                              <span className="text-[9px] font-black uppercase block mb-1">Deseja Medidas?</span>
+                              <p className="text-sm font-bold">{selectedOc.deseja_medidas_protetivas ? 'Sim' : 'Não'}</p>
+                           </div>
+                           <div>
+                              <span className="text-[9px] font-black uppercase block mb-1">Risco Iminente de Morte</span>
+                              <p className="text-sm font-bold">{selectedOc.risco_iminente_morte ? 'Sim' : 'Não'}</p>
+                           </div>
+                        </div>
+                      </div>
+                    </section>
+                  </>
+                )}
+
+                {/* 5. Envolvidos (Não exibe para Maria da Penha) */}
+                {selectedOc.categoria !== 'maria_da_penha' && (
                 <section className="space-y-4">
                   <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
                     <User className="w-3 h-3 text-indigo-500" /> Pessoas Envolvidas ({envolvidos.length})
@@ -987,6 +1295,7 @@ export function OcorrenciasPage({ categoria = 'padrao', title = 'Registro de Oco
                     </div>
                   )}
                 </section>
+                )}
 
                 {/* 6. Anotações */}
                 <section className="space-y-6 pt-10 border-t border-slate-100">
@@ -1042,6 +1351,72 @@ export function OcorrenciasPage({ categoria = 'padrao', title = 'Registro de Oco
         cancelText="Manter Registro"
         variant="danger"
       />
+
+      {isAnotacoesOpen && selectedOc && (
+        <div className="fixed inset-0 z-50 flex justify-end bg-slate-900/40 backdrop-blur-sm animate-in fade-in">
+           <div className="w-full max-w-xl bg-white h-full shadow-2xl flex flex-col animate-in slide-in-from-right-8 duration-500">
+              <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-amber-500 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-amber-500/20">
+                    <MessageSquarePlus className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-black text-slate-900 tracking-tight">Anotações</h3>
+                    <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">OC-{selectedOc.numero_oficial}</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setIsAnotacoesOpen(false)}
+                  className="p-3 text-slate-400 hover:text-slate-600 hover:bg-white rounded-xl transition-all"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              
+              <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
+                {anotacoes.length === 0 ? (
+                  <div className="text-center py-12">
+                    <MessageSquare className="w-12 h-12 text-slate-200 mx-auto mb-4" />
+                    <p className="text-slate-400 font-medium">Nenhuma anotação ainda.</p>
+                    <p className="text-slate-300 text-sm">Seja o primeiro a adicionar uma observação.</p>
+                  </div>
+                ) : (
+                  anotacoes.map((nota: any) => (
+                    <div key={nota.id} className="p-5 bg-slate-50 rounded-3xl border border-slate-100 animate-in fade-in">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-[10px] font-black text-indigo-600 uppercase">
+                          {nota.usuarios?.primeiro_nome} {nota.usuarios?.sobrenome}
+                        </span>
+                        <span className="text-[9px] text-slate-400 font-bold uppercase">
+                          {new Date(nota.created_at).toLocaleString('pt-BR')}
+                        </span>
+                      </div>
+                      <p className="text-sm text-slate-600 font-medium leading-relaxed">{nota.texto}</p>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              <div className="p-6 border-t border-slate-100 bg-slate-50/50">
+                <div className="relative">
+                  <textarea 
+                    value={novaAnotacao}
+                    onChange={(e) => setNovaAnotacao(e.target.value)}
+                    placeholder="Adicionar uma nova anotação ou observação..."
+                    className="w-full p-4 bg-white border border-slate-200 rounded-2xl text-sm focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500 outline-none transition-all resize-none min-h-[100px] font-medium"
+                  />
+                  <button 
+                    onClick={handleAddAnotacao}
+                    disabled={sendingNota || !novaAnotacao.trim() || novaAnotacao.length < 10}
+                    className="mt-3 w-full py-3 bg-amber-500 text-white rounded-xl font-black text-sm uppercase tracking-wider hover:bg-amber-600 transition-all shadow-lg shadow-amber-500/20 disabled:opacity-50 disabled:grayscale"
+                  >
+                    {sendingNota ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : 'Salvar Anotação'}
+                  </button>
+                </div>
+              </div>
+           </div>
+        </div>
+      )}
     </div>
   );
 }

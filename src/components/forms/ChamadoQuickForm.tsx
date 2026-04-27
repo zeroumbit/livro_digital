@@ -8,6 +8,8 @@ import {
   Loader2, 
   Users, 
   Navigation,
+  MapPinCheck,
+  ReceiptText,
   AlertTriangle
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
@@ -24,8 +26,9 @@ const parceirosDisponiveis = [
 
 const origemOptions = [
   { label: 'DENÚNCIA ANÔNIMA', sub: ['Telefone', 'Redes Sociais', 'Pessoalmente'] },
+  { label: 'FORÇAS DE SEGURANÇA', sub: ['Polícia Militar', 'Polícia Civil', 'PRF', 'Polícia Federal', 'Bombeiros'] },
   { label: 'REDES SOCIAIS', sub: [] },
-  { label: 'CÂMERAS DE MONITORAMENTO', sub: [] },
+  { label: 'VÍDEO MONITORAMENTO', sub: [] },
 ];
 
 const chamadoSchema = z.object({
@@ -104,7 +107,7 @@ export function ChamadoQuickForm({ onClose, onSuccess }: Props) {
 
       if (chError) throw chError;
 
-      if (novoChamado && data.parceiros.length > 0) {
+      if (novoChamado && data.parceiros && data.parceiros.length > 0) {
         await supabase.from('chamados_parceiros').insert(
           data.parceiros.map(p => ({
             chamado_id: novoChamado.id,
@@ -150,10 +153,10 @@ export function ChamadoQuickForm({ onClose, onSuccess }: Props) {
           {/* Origem */}
           <section className="space-y-4">
             <div className="flex items-center gap-2 text-slate-400">
-               <AlertTriangle className="w-4 h-4" />
+               <MapPinCheck className="w-4 h-4" />
                <span className="text-[10px] font-black uppercase tracking-widest">Origem do Chamado</span>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
               {origemOptions.map(o => (
                 <button
                   key={o.label}
@@ -162,13 +165,13 @@ export function ChamadoQuickForm({ onClose, onSuccess }: Props) {
                     setValue('origem', o.label);
                     setValue('sub_origem', '');
                   }}
-                  className={`p-4 rounded-2xl border text-left transition-all ${
+                  className={`p-2 rounded-xl border text-center transition-all min-h-[60px] flex items-center justify-center ${
                     watchOrigem === o.label 
                       ? 'bg-red-50 border-red-600 text-red-700 shadow-lg shadow-red-600/20' 
                       : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
                   }`}
                 >
-                  <p className="text-sm font-black">{o.label}</p>
+                  <p className="text-[10px] font-black leading-tight">{o.label}</p>
                 </button>
               ))}
             </div>
@@ -198,7 +201,7 @@ export function ChamadoQuickForm({ onClose, onSuccess }: Props) {
           {/* Detalhes Adicionais */}
           <section className="space-y-4">
             <div className="flex items-center gap-2 text-slate-400">
-               <AlertTriangle className="w-4 h-4" />
+               <ReceiptText className="w-4 h-4" />
                <span className="text-[10px] font-black uppercase tracking-widest">Detalhes Adicionais</span>
             </div>
             <textarea 

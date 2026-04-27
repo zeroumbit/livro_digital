@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { supabase } from '@/lib/supabase';
+import { SetupGuideBanner } from '@/components/SetupGuideCards';
 import { 
   BarChart, 
   Bar, 
@@ -114,6 +115,9 @@ export const DashboardGestor = React.memo(({ isVisible }: { isVisible?: boolean 
 
   return (
     <div className="space-y-10 animate-in fade-in slide-in-from-bottom-6 duration-700 pb-20">
+      
+      {/* GUIA DE CONFIGURAÇÃO */}
+      <SetupGuideBanner />
       
       {/* HEADER DINÂMICO */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">

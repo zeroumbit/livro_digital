@@ -1,5 +1,5 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
-import { lazy, Suspense, startTransition } from 'react';
+import { lazy, Suspense } from 'react';
 import { AuthLayout } from '@/layouts/AuthLayout';
 import { DashboardLayout } from '@/layouts/DashboardLayout';
 import SuperAdminLayout from '@/layouts/SuperAdminLayout';
@@ -16,7 +16,7 @@ const PreloadLink = ({ to }: { to: string }) => {
 
 // Páginas com Lazy Loading otimizado
 const createLazy = (factory: () => Promise<{ default: React.ComponentType<any> }>) => 
-  lazy(() => startTransition(() => factory()));
+  lazy(factory);
 
 const LoginPage = createLazy(() => import('@/pages/auth/LoginPage').then(m => ({ default: m.LoginPage })));
 const RegisterPage = createLazy(() => import('@/pages/auth/RegisterPage').then(m => ({ default: m.RegisterPage })));
@@ -40,11 +40,6 @@ const ConfiguracoesPage = createLazy(() => import('@/pages/dashboard/Configuraco
 const ChamadosPage = createLazy(() => import('@/pages/dashboard/ChamadosPage').then(m => ({ default: m.ChamadosPage })));
 const EscalasPage = createLazy(() => import('@/pages/dashboard/EscalasPage').then(m => ({ default: m.EscalasPage })));
 const CreateOcorrenciaPage = createLazy(() => import('@/pages/dashboard/CreateOcorrenciaPage').then(m => ({ default: m.CreateOcorrenciaPage })));
-
-// Page wrapper com Suspense otimizado
-const Page = ({ children }: { children: React.ReactNode }) => (
-  <Suspense fallback={<LoadingScreen minimal />}>{children}</Suspense>
-);
 
 // Page wrapper com Suspense otimizado
 const Page = ({ children }: { children: React.ReactNode }) => (
