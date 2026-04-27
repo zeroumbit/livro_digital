@@ -35,16 +35,18 @@ const chamadoSchema = z.object({
   origem: z.string().min(1, 'Origem é obrigatória'),
   sub_origem: z.string().optional(),
   natureza: z.array(z.string()).min(1, 'Selecione a natureza'),
-  qtde_envolvidos: z.string().min(1, 'Selecione a quantidade de envolvidos'),
+  qtde_envolvidos: z.string().optional().default('1'),
   qtde_especifica: z.string().optional(),
   rua: z.string().min(1, 'Rua é obrigatória'),
   bairro: z.string().min(1, 'Bairro é obrigatório'),
+  cidade: z.string().optional(),
+  estado: z.string().optional(),
   numero: z.string().optional(),
   cep: z.string().optional(),
-  coordenadas: z.string().min(1, 'GPS obrigatório para chamados rápidos'),
+  coordenadas: z.string().optional(),
   ponto_referencia: z.string().optional(),
   detalhes: z.string().optional(),
-  parceiros: z.array(z.string()).optional().default([]),
+  parceiros: z.array(z.string()).min(1, 'Selecione pelo menos um parceiro'),
 });
 
 type ChamadoFormData = z.infer<typeof chamadoSchema>;
@@ -64,7 +66,8 @@ export function ChamadoQuickForm({ onClose, onSuccess }: Props) {
       origem: '',
       sub_origem: '',
       natureza: [],
-      qtde_envolvidos: '',
+      qtde_envolvidos: '1',
+      parceiros: [],
     }
   });
 
@@ -75,15 +78,14 @@ export function ChamadoQuickForm({ onClose, onSuccess }: Props) {
   const watchRua = watch('rua');
   const watchBairro = watch('bairro');
   const watchCoordenadas = watch('coordenadas');
+  const watchParceiros = watch('parceiros');
 
   const selectedOrigem = origemOptions.find(o => o.label === watchOrigem);
 
   const isFormValid = watchOrigem && 
     watchNatureza?.length > 0 && 
-    watchEnvolvidos && 
     watchRua && 
-    watchBairro && 
-    watchCoordenadas;
+    watchBairro;
 
   const onSubmit = async (data: ChamadoFormData) => {
     setLoading(true);
@@ -313,6 +315,8 @@ export function ChamadoQuickForm({ onClose, onSuccess }: Props) {
                 setValue('rua', loc.rua);
                 setValue('bairro', loc.bairro);
                 setValue('cep', loc.cep);
+                setValue('cidade', loc.cidade);
+                setValue('estado', loc.estado);
                 setValue('numero', loc.numero || '');
                 setValue('coordenadas', loc.coordenadas || '');
               }}
@@ -352,8 +356,10 @@ export function ChamadoQuickForm({ onClose, onSuccess }: Props) {
             }`}
           >
             {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <PhoneCall className="w-5 h-5" />}
-            Despachar Chamado
+            ENVIAR CHAMADO
           </button>
+
+
         </div>
       </div>
     </div>

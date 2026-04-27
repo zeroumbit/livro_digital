@@ -373,7 +373,7 @@ export function EscalasPage() {
               key={escala.id} 
               escala={escala} 
               onEdit={handleEdit}
-              onDelete={handleDelete}
+              onDelete={handleDeleteClick}
               onViewAgentes={handleViewAgentes}
             />
           ))}
@@ -490,6 +490,7 @@ export function EscalasPage() {
       )}
 
       {isAgentesOpen && selectedEscalaAgentes && (
+
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
           <div className="bg-white rounded-[2rem] w-full max-w-lg shadow-2xl animate-in zoom-in-95 duration-200">
             <div className="p-8 border-b border-slate-100 flex items-center justify-between">
@@ -537,6 +538,16 @@ export function EscalasPage() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={isConfirmOpen}
+        onClose={() => setIsConfirmOpen(false)}
+        onConfirm={confirmDelete}
+        title="Excluir Escala"
+        description="Tem certeza que deseja excluir esta escala? Esta ação não pode ser desfeita."
+        confirmText="Excluir"
+        loading={deleting}
+      />
     </div>
   );
 }

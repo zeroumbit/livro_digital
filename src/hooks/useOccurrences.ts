@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
+import { useAuthStore } from '@/store/useAuthStore';
 
 export interface Occurrence {
   id: string;
@@ -23,6 +24,8 @@ export const fetchOccurrences = async (instituicaoId: string, categoria: string 
     foreignKeyName = 'embriaguez_id';
   } else if (categoria === 'maria_da_penha') {
     tableName = 'maria_da_penha';
+  } else if (categoria === 'chamados') {
+    tableName = 'chamados_ocorrencias';
   }
 
   const { data: ocorrencias, error } = await supabase
@@ -35,11 +38,10 @@ export const fetchOccurrences = async (instituicaoId: string, categoria: string 
   if (error) throw error;
   if (!ocorrencias || ocorrencias.length === 0) return [];
 
-  // Se for Maria da Penha, o gênero da vítima já está na própria tabela
-  if (categoria === 'maria_da_penha') {
+  if (categoria === 'maria_da_penha' || categoria === 'chamados') {
     return ocorrencias.map(o => ({
       ...o,
-      genero: o.vitima_genero || null
+      genero: o.vitima_genero || o.genero || null
     }));
   }
 
@@ -67,10 +69,6 @@ export const fetchOccurrences = async (instituicaoId: string, categoria: string 
   }));
 };
 
-
-
-import { useAuthStore } from '@/store/useAuthStore';
-
 export const useOccurrences = (categoria: string = 'padrao') => {
   const profile = useAuthStore(state => state.profile);
   
@@ -78,8 +76,8 @@ export const useOccurrences = (categoria: string = 'padrao') => {
     queryKey: ['occurrences', profile?.instituicao_id, categoria],
     queryFn: () => fetchOccurrences(profile?.instituicao_id || '', categoria),
     enabled: !!profile?.instituicao_id,
-    staleTime: 1000 * 60 * 10, // 10 minutos sem marcar como "velho"
-    gcTime: 1000 * 60 * 30,    // 30 minutos em memória mesmo sem uso
+    staleTime: 1000 * 60 * 10,
+    gcTime: 1000 * 60 * 30,
   });
 };
 

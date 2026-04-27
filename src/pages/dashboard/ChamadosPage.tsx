@@ -96,13 +96,15 @@ export function ChamadosPage() {
                       onClick={() => {
                         setPreFillData({
                           categoria: 'chamados',
+                          chamado_id: c.id,
                           rua: c.rua,
                           bairro: c.bairro,
                           numero: c.numero,
                           referencia: c.referencia,
-                          descricao: `CHAMADO: ${c.solicitante_nome}\nTELEFONE: ${c.solicitante_telefone}\nDESCRIÇÃO: ${c.descricao}`,
+                          descricao: `CHAMADO ORIGEM: #${c.id?.slice(0, 8)}\nSOLICITANTE: ${c.solicitante_nome || 'Não informado'}\nTELEFONE: ${c.solicitante_telefone || 'Não informado'}\nDESCRIÇÃO: ${c.descricao || 'Sem descrição'}`,
                           origem: c.origem || 'CENTRAL DE RÁDIO',
-                          sub_origem: c.tipo_origem || 'Rádio'
+                          sub_origem: c.tipo_origem || 'Rádio',
+                          natureza: c.natureza || []
                         });
                         setIsOcFormOpen(true);
                       }}

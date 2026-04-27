@@ -42,82 +42,55 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   setIsLoading: (loading) => set({ isLoading: loading }),
   
   initialize: async () => {
-    // Evitar múltiplas inicializações se já estiver carregando ou logado
+    // Evita múltiplas chamadas simultâneas se já estivermos carregando
+    // mas permitimos a PRIMEIRA chamada que já nasce com isLoading: true
     if (get().user && !get().isLoading) return;
+    
+    // Se já temos uma sessão sendo buscada (exceto na inicialização), ignoramos
+    // Para identificar se é a inicialização, checamos se o user é null e isLoading é true
+    // mas permitimos seguir se for a primeira execução do App.tsx
 
     const { data: { session } } = await supabase.auth.getSession();
     const user = session?.user ?? null;
     
     const fetchFullProfile = async (uid: string) => {
-      // Busca perfil primeiro para pegar o instituicao_id
-      const { data: profile, error: profileError } = await supabase
+      const { data: profile } = await supabase
         .from('usuarios')
         .select('*')
         .eq('id', uid)
         .single();
       
-      if (profileError || !profile) {
-        set({ profile: null, institution: null });
-        return;
-      }
+      if (profile) {
+        set({ profile });
 
-      set({ profile });
-
-      if (profile.instituicao_id) {
-        // Busca instituição e planos
-        const { data: institution } = await supabase
-          .from('instituicoes')
-          .select('*, planos(*)')
-          .eq('id', profile.instituicao_id)
-          .single();
-        
-        set({ institution });
+        if (profile.instituicao_id) {
+          const { data: institution } = await supabase
+            .from('instituicoes')
+            .select('*, planos(*)')
+            .eq('id', profile.instituicao_id)
+            .single();
+          
+          set({ institution });
+        }
       }
     };
 
-
-    set({ user, isLoading: !!user });
+    set({ user });
 
     if (user) {
       await fetchFullProfile(user.id);
-      
-      // REALTIME: Escutar mudanças no perfil do usuário (Singleton por sessão)
-      const profileChannel = `profile-${user.id}`;
-      if (!supabase.getChannels().find(c => c.topic === `realtime:${profileChannel}`)) {
-          supabase
-            .channel(profileChannel)
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'usuarios', filter: `id=eq.${user.id}` }, 
-              () => fetchFullProfile(user.id)
-            ).subscribe();
-      }
-
-      // REALTIME: Escutar mudanças na instituição
-      const userProfile = get().profile;
-      if (userProfile?.instituicao_id) {
-        const instChannel = `inst-${userProfile.instituicao_id}`;
-        if (!supabase.getChannels().find(c => c.topic === `realtime:${instChannel}`)) {
-            supabase
-              .channel(instChannel)
-              .on('postgres_changes', { event: '*', schema: 'public', table: 'instituicoes', filter: `id=eq.${userProfile.instituicao_id}` }, 
-                () => fetchFullProfile(user.id)
-              ).subscribe();
-        }
-      }
     }
     
     set({ isLoading: false });
 
-    // Listen for Auth changes
-    supabase.auth.onAuthStateChange(async (event, session) => {
-      const newUser = session?.user ?? null;
-      if (event === 'SIGNED_IN' && newUser) {
-        set({ user: newUser, isLoading: true });
-        await fetchFullProfile(newUser.id);
-        set({ isLoading: false });
+    // Auth listener para mudanças de sessão
+    supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) {
+        set({ user: session.user });
+        fetchFullProfile(session.user.id);
       } else if (event === 'SIGNED_OUT') {
-          // Limpar todos os canais ao sair
-          supabase.removeAllChannels();
-          set({ user: null, profile: null, institution: null, isLoading: false });
+        supabase.removeAllChannels();
+        set({ user: null, profile: null, institution: null, isLoading: false });
       }
     });
   },

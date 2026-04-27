@@ -186,7 +186,7 @@ export function MariaDaPenhaForm({ onClose, onSuccess, initialData }: Props) {
       origem_tipo,
       natureza: data.natureza?.length ? data.natureza : ['Violência Doméstica (Aguardando Polícia)'],
       descricao: data.descricao || 'Ocorrência em rascunho',
-      titulo: \`Maria da Penha - \${data.vitima_nome || 'Em preenchimento'}\`,
+      titulo: `Maria da Penha - ${data.vitima_nome || 'Em preenchimento'}`,
       ultimo_passo: step,
       rua: data.rua || 'Pendente',
       numero: data.numero || '',
@@ -299,8 +299,8 @@ export function MariaDaPenhaForm({ onClose, onSuccess, initialData }: Props) {
       if (photos.length > 0) {
         for (const photo of photos) {
           if (photo.file) {
-            const fileName = \`\${crypto.randomUUID()}.\${photo.file.name.split('.').pop()}\`;
-            const filePath = \`\${profile?.instituicao_id}/\${fileName}\`;
+            const fileName = `${crypto.randomUUID()}.${photo.file.name.split('.').pop()}`;
+            const filePath = `${profile?.instituicao_id}/${fileName}`;
             const { error: uploadError } = await supabase.storage.from('ocorrencias').upload(filePath, photo.file);
             if (!uploadError) {
               const { data: { publicUrl } } = supabase.storage.from('ocorrencias').getPublicUrl(filePath);
@@ -366,7 +366,7 @@ export function MariaDaPenhaForm({ onClose, onSuccess, initialData }: Props) {
       <div className="h-1.5 bg-slate-200 w-full">
         <div 
           className="h-full bg-purple-600 transition-all duration-500 ease-out"
-          style={{ width: \`\${(step / totalSteps) * 100}%\` }}
+          style={{ width: `${(step / totalSteps) * 100}%` }}
         />
       </div>
 
@@ -386,14 +386,14 @@ export function MariaDaPenhaForm({ onClose, onSuccess, initialData }: Props) {
                       key={opt.label}
                       type="button"
                       onClick={() => setValue('origem', opt.label)}
-                      className={\`p-4 rounded-2xl border text-left transition-all \${
+                      className={`p-4 rounded-2xl border text-left transition-all ${
                         watchOrigem === opt.label 
                           ? 'bg-purple-600 border-purple-600 text-white shadow-lg' 
                           : 'bg-white border-slate-200 hover:border-purple-300'
-                      }\`}
+                      }`}
                     >
                       <h4 className="font-bold text-sm mb-1">{opt.label}</h4>
-                      <p className={\`text-xs \${watchOrigem === opt.label ? 'text-purple-100' : 'text-slate-500'}\`}>{opt.desc}</p>
+                      <p className={`text-xs ${watchOrigem === opt.label ? 'text-purple-100' : 'text-slate-500'}`}>{opt.desc}</p>
                     </button>
                   ))}
                 </div>
@@ -624,9 +624,9 @@ export function MariaDaPenhaForm({ onClose, onSuccess, initialData }: Props) {
                               const val = field.value || [];
                               field.onChange(val.includes(tipo) ? val.filter(v => v !== tipo) : [...val, tipo]);
                             }}
-                            className={\`px-4 py-3 rounded-xl text-sm font-bold transition-all border \${
+                            className={`px-4 py-3 rounded-xl text-sm font-bold transition-all border ${
                               (field.value || []).includes(tipo) ? 'bg-purple-600 border-purple-600 text-white' : 'bg-white border-slate-200'
-                            }\`}
+                            }`}
                           >
                             {tipo}
                           </button>
@@ -705,11 +705,11 @@ export function MariaDaPenhaForm({ onClose, onSuccess, initialData }: Props) {
                   <p className="text-sm text-slate-500">Responda SIM ou NÃO (Padrão é Não).</p>
                 </div>
                 
-                <div className={\`p-4 rounded-xl border flex items-center justify-between \${
+                <div className={`p-4 rounded-xl border flex items-center justify-between ${
                   nivel_risco === 'Elevado' ? 'bg-red-50 border-red-200 text-red-800' :
                   nivel_risco === 'Médio' ? 'bg-amber-50 border-amber-200 text-amber-800' :
                   'bg-blue-50 border-blue-200 text-blue-800'
-                }\`}>
+                }`}>
                   <div className="flex items-center gap-2">
                     <AlertOctagon className="w-5 h-5" />
                     <span className="font-black uppercase">Nível de Risco Calculado:</span>
@@ -802,9 +802,9 @@ export function MariaDaPenhaForm({ onClose, onSuccess, initialData }: Props) {
                                 const val = field.value || [];
                                 field.onChange(val.includes(m) ? val.filter(v => v !== m) : [...val, m]);
                               }}
-                              className={\`px-4 py-3 rounded-xl text-sm font-bold text-left transition-all border \${
+                              className={`px-4 py-3 rounded-xl text-sm font-bold text-left transition-all border ${
                                 (field.value || []).includes(m) ? 'bg-purple-600 border-purple-600 text-white' : 'bg-white border-slate-200'
-                              }\`}
+                              }`}
                             >
                               {m}
                             </button>
@@ -855,9 +855,9 @@ export function MariaDaPenhaForm({ onClose, onSuccess, initialData }: Props) {
                             const val = field.value || [];
                             field.onChange(val.includes(enc) ? val.filter(v => v !== enc) : [...val, enc]);
                           }}
-                          className={\`px-4 py-3 rounded-xl text-sm font-bold text-left transition-all border \${
+                          className={`px-4 py-3 rounded-xl text-sm font-bold text-left transition-all border ${
                             (field.value || []).includes(enc) ? 'bg-purple-600 border-purple-600 text-white' : 'bg-white border-slate-200'
-                          }\`}
+                          }`}
                         >
                           {enc}
                         </button>
@@ -891,7 +891,7 @@ export function MariaDaPenhaForm({ onClose, onSuccess, initialData }: Props) {
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                   {photos.map((photo, index) => (
                     <div key={index} className="relative aspect-square rounded-2xl overflow-hidden border border-slate-200">
-                      <img src={photo.preview} alt={\`Preview \${index}\`} className="w-full h-full object-cover" />
+                      <img src={photo.preview} alt={`Preview ${index}`} className="w-full h-full object-cover" />
                       <button 
                         type="button"
                         onClick={() => setPhotos(prev => prev.filter((_, i) => i !== index))}

@@ -49,6 +49,8 @@ import {
 
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useAuthStore } from '@/store/useAuthStore';
+import { supabase } from '@/lib/supabase';
+
 
 import { OcorrenciaMultiStepForm } from '@/components/forms/OcorrenciaMultiStepForm';
 import { formatDistanceToNow } from 'date-fns';
@@ -280,22 +282,22 @@ const HorarioModal: React.FC<{isOpen: boolean; onClose: () => void; onApply: (in
   );
 };
 
-const OcorrenciaRow = React.memo(({ oc, onOpenDetails, onEdit, onDelete, onOpenAnotacoes, onDownloadPdf, onPrint }: any) => {
-  return (
-    <tr className="hover:bg-slate-50/50 transition-colors group">
-      <td className="px-8 py-6">
-        <span className="font-black text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-lg text-xs tracking-tighter">
-          OC-{oc.numero_oficial}
-        </span>
-      </td>
-      <td className="px-6 py-6">
-        <div className="flex items-center">
-          <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center mr-3 group-hover:bg-white transition-colors">
-            <ShieldAlert className="w-5 h-5 text-slate-400" />
-          </div>
-          <span className="font-bold text-slate-700 truncate max-w-[200px]">{oc.natureza?.[0]}</span>
-        </div>
-      </td>
+  const OcorrenciaRow = React.memo(({ oc, onOpenDetails, onEdit, onDelete, onOpenAnotacoes, onDownloadPdf, onPrint }: any) => {
+   return (
+     <tr className="hover:bg-slate-50/50 transition-colors group">
+       <td className="px-8 py-6 whitespace-nowrap hidden">
+         <span className="font-black text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-lg text-xs tracking-tighter">
+           OC-{oc.numero_oficial}
+         </span>
+       </td>
+       <td className="px-6 py-6 hidden">
+         <div className="flex items-center">
+           <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center mr-3 group-hover:bg-white transition-colors">
+             <ShieldAlert className="w-5 h-5 text-slate-400" />
+           </div>
+           <span className="font-bold text-slate-700 truncate whitespace-nowrap">{oc.natureza?.[0]}</span>
+         </div>
+       </td>
       <td className="px-6 py-6">
         <div className="flex flex-col">
            <div className="flex items-center gap-1.5">
@@ -307,7 +309,7 @@ const OcorrenciaRow = React.memo(({ oc, onOpenDetails, onEdit, onDelete, onOpenA
       </td>
       <td className="px-6 py-6">
         <div className="flex flex-col">
-          <span className="text-slate-600 font-medium truncate max-w-[150px]">{oc.rua}{oc.numero ? `, ${oc.numero}` : ''}</span>
+          <span className="text-slate-600 font-medium truncate whitespace-nowrap">{oc.rua}{oc.numero ? `, ${oc.numero}` : ''}</span>
           <span className="text-[10px] text-slate-400 flex items-center mt-1 uppercase font-bold tracking-widest">
             {oc.bairro}
           </span>
@@ -468,8 +470,8 @@ export function OcorrenciasPage({ categoria = 'padrao', title = 'Registro de Oco
   };
 
   const fetchEnvolvidos = async (id: string) => {
-    if (categoria === 'maria_da_penha') {
-      setEnvolvidos([]); // Vítima e agressor já estão nos campos da tabela
+    if (categoria === 'maria_da_penha' || categoria === 'chamados') {
+      setEnvolvidos([]); // Vítima e agressor já estão nos campos da tabela ou não aplicável
       return;
     }
     const { data } = await supabase
@@ -482,8 +484,14 @@ export function OcorrenciasPage({ categoria = 'padrao', title = 'Registro de Oco
 
 
   const fetchAnotacoes = async (id: string) => {
-    const tableName = categoria === 'maria_da_penha' ? 'maria_da_penha_anotacoes' : categoria === 'embriaguez' ? 'embriaguez_anotacoes' : 'ocorrencia_anotacoes';
-    const idField = categoria === 'maria_da_penha' ? 'mdp_id' : categoria === 'embriaguez' ? 'embriaguez_id' : 'ocorrencia_id';
+    const tableName = 
+      categoria === 'maria_da_penha' ? 'maria_da_penha_anotacoes' : 
+      categoria === 'embriaguez' ? 'embriaguez_anotacoes' : 
+      'ocorrencia_anotacoes';
+    const idField = 
+      categoria === 'maria_da_penha' ? 'mdp_id' : 
+      categoria === 'embriaguez' ? 'embriaguez_id' : 
+      'ocorrencia_id';
     
     const { data: anotacoesData } = await supabase
       .from(tableName)
@@ -514,8 +522,14 @@ export function OcorrenciasPage({ categoria = 'padrao', title = 'Registro de Oco
     if (!novaAnotacao.trim() || novaAnotacao.length < 10 || !selectedOc || !profile?.id) return;
     setSendingNota(true);
     
-    const tableName = categoria === 'maria_da_penha' ? 'maria_da_penha_anotacoes' : categoria === 'embriaguez' ? 'embriaguez_anotacoes' : 'ocorrencia_anotacoes';
-    const idField = categoria === 'maria_da_penha' ? 'mdp_id' : categoria === 'embriaguez' ? 'embriaguez_id' : 'ocorrencia_id';
+    const tableName = 
+      categoria === 'maria_da_penha' ? 'maria_da_penha_anotacoes' : 
+      categoria === 'embriaguez' ? 'embriaguez_anotacoes' : 
+      'ocorrencia_anotacoes';
+    const idField = 
+      categoria === 'maria_da_penha' ? 'mdp_id' : 
+      categoria === 'embriaguez' ? 'embriaguez_id' : 
+      'ocorrencia_id';
 
     const { error } = await supabase.from(tableName).insert([{
       [idField]: selectedOc.id,
@@ -547,7 +561,11 @@ export function OcorrenciasPage({ categoria = 'padrao', title = 'Registro de Oco
     setDeleting(true);
     
     try {
-      const tableName = categoria === 'maria_da_penha' ? 'maria_da_penha' : categoria === 'embriaguez' ? 'embriaguez' : 'ocorrencias';
+      const tableName = 
+        categoria === 'maria_da_penha' ? 'maria_da_penha' : 
+        categoria === 'embriaguez' ? 'embriaguez' : 
+        categoria === 'chamados' ? 'chamados_ocorrencias' : 
+        'ocorrencias';
       const { error } = await supabase
         .from(tableName)
         .delete()
@@ -792,7 +810,11 @@ export function OcorrenciasPage({ categoria = 'padrao', title = 'Registro de Oco
         </div>
         <button 
           onClick={() => {
-            const tipo = categoria === 'maria_da_penha' ? 'maria-da-penha' : categoria === 'embriaguez' ? 'embriaguez' : 'padrao';
+            const tipo = 
+              categoria === 'maria_da_penha' ? 'maria-da-penha' : 
+              categoria === 'embriaguez' ? 'embriaguez' : 
+              categoria === 'chamados' ? 'chamados' : 
+              'padrao';
             navigate(`/criar/ocorrencia/${tipo}`);
           }}
           className="flex items-center justify-center px-6 py-4 bg-indigo-600 text-white rounded-2xl font-black text-sm uppercase tracking-wider hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-600/20 active:scale-95"
@@ -897,16 +919,16 @@ export function OcorrenciasPage({ categoria = 'padrao', title = 'Registro de Oco
       <div className="bg-white border border-slate-200 rounded-[2rem] shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-50/50 border-b border-slate-100">
-                <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Código</th>
-                <th className="px-6 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Natureza</th>
-                <th className="px-6 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Origem</th>
-                <th className="px-6 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Localização</th>
-                <th className="px-6 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</th>
-                <th className="px-8 py-6 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest">Ações</th>
-              </tr>
-            </thead>
+              <thead>
+               <tr className="bg-slate-50/50 border-b border-slate-100">
+                 <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest hidden">Código</th>
+                 <th className="px-6 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest hidden">Natureza</th>
+                 <th className="px-6 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Origem</th>
+                 <th className="px-6 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Localização</th>
+                 <th className="px-6 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</th>
+                 <th className="px-8 py-6 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest">Ações</th>
+               </tr>
+             </thead>
             <tbody className="divide-y divide-slate-50 text-sm">
               {loading ? (
                 <tr><td colSpan={6} className="p-12 text-center text-slate-400">Carregando...</td></tr>

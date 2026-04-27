@@ -31,10 +31,7 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { usePlan } from '@/hooks/usePlan';
-import { supabase } from '@/lib/supabase';
 import { OriginalLoader } from '@/components/ui/OriginalLoader';
-import { useQueryClient } from '@tanstack/react-query';
-import { fetchOccurrences } from '@/hooks/useOccurrences';
 
 // ============================================================================
 // ESTRUTURA DE NAVEGAÇÃO
@@ -134,20 +131,9 @@ const managerNavGroups: NavGroup[] = [
 const SidebarItem = ({ item, allowedModules }: any) => {
   const { profile } = useAuthStore();
   const location = useLocation();
-  const queryClient = useQueryClient();
   const [isOpen, setIsOpen] = useState(location.pathname.startsWith(item.path || '!!!!'));
   const hasSubItems = item.subItems && item.subItems.length > 0;
   const isActive = item.path ? location.pathname === item.path : item.subItems?.some((si: any) => location.pathname === si.path);
-
-  const handlePrefetch = () => {
-    if ((item.module === 'ocorrencias' || item.path === '/ocorrencias') && profile?.instituicao_id) {
-      queryClient.prefetchQuery({
-        queryKey: ['occurrences', profile.instituicao_id],
-        queryFn: () => fetchOccurrences(profile.instituicao_id),
-        staleTime: 1000 * 60 * 10,
-      });
-    }
-  };
 
   const isGestor = profile?.perfil_acesso === 'gestor';
   const roleAllowed = !item.roles || item.roles.includes(profile?.perfil_acesso);
@@ -161,7 +147,6 @@ const SidebarItem = ({ item, allowedModules }: any) => {
         <>
           <button 
             onClick={() => setIsOpen(!isOpen)}
-            onMouseEnter={handlePrefetch}
             className={`w-full flex items-center px-4 py-3 rounded-2xl text-sm font-bold transition-all group ${
               isActive ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
             }`}
@@ -177,9 +162,6 @@ const SidebarItem = ({ item, allowedModules }: any) => {
                 <Link
                   key={sub.path}
                   to={sub.path}
-                  onMouseEnter={() => {
-                    if (sub.path === '/ocorrencias') handlePrefetch();
-                  }}
                   className={`flex items-center px-4 py-2 rounded-xl text-xs font-bold transition-all ${
                     location.pathname === sub.path 
                       ? 'text-indigo-600 bg-indigo-50/50' 
@@ -196,7 +178,6 @@ const SidebarItem = ({ item, allowedModules }: any) => {
       ) : (
         <Link
           to={item.path!}
-          onMouseEnter={handlePrefetch}
           className={`flex items-center px-4 py-3 rounded-2xl text-sm font-bold transition-all group ${
             isActive ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
           }`}

@@ -22,7 +22,9 @@ import {
   ClipboardList,
   Beer,
   Activity,
-  CheckSquare
+  CheckSquare,
+  AlertCircle,
+  Zap
 } from 'lucide-react';
 
 
@@ -32,6 +34,7 @@ import { NaturezaSelector } from '../NaturezaSelector';
 import { LocationInput } from '../LocationInput';
 import { validateCPF, fetchCNPJ } from '@/lib/api-services';
 import { toast } from 'sonner';
+import { useOfflineStore } from '@/store/useOfflineStore';
 
 const envolvidosSchema = z.object({
   nome_completo: z.string().min(1, 'Nome é obrigatório'),
@@ -46,7 +49,7 @@ const envolvidosSchema = z.object({
 });
 
 const ocorrenciaSchema = z.object({
-  categoria: z.enum(['padrao', 'maria_da_penha', 'embriaguez']).default('padrao'),
+  categoria: z.enum(['padrao', 'maria_da_penha', 'embriaguez', 'chamados']).default('padrao'),
   origem: z.string().min(1, 'Origem é obrigatória'),
   sub_origem: z.string().optional(),
   descricao: z.string().min(1, 'Descrição é obrigatória'),
@@ -87,10 +90,23 @@ interface Props {
   onClose: () => void;
   onSuccess: () => void;
   initialData?: any;
-  defaultCategoria?: 'padrao' | 'maria_da_penha' | 'embriaguez';
+defaultCategoria?: 'padrao' | 'maria_da_penha' | 'embriaguez' | 'chamados';
   categoriaLabel?: string;
 }
 
+
+const getTableConfig = (categoria: string) => {
+  switch (categoria) {
+    case 'embriaguez':
+      return { tableName: 'embriaguez', involvedTableName: 'embriaguez_envolvidos', foreignKeyName: 'embriaguez_id' };
+    case 'maria_da_penha':
+      return { tableName: 'maria_da_penha', involvedTableName: null, foreignKeyName: null };
+    case 'chamados':
+      return { tableName: 'chamados_ocorrencias', involvedTableName: null, foreignKeyName: null };
+    default:
+      return { tableName: 'ocorrencias', involvedTableName: 'ocorrencia_envolvidos', foreignKeyName: 'ocorrencia_id' };
+  }
+};
 
 export function OcorrenciaMultiStepForm({ onClose, onSuccess, initialData, defaultCategoria = 'padrao', categoriaLabel }: Props) {
 
@@ -101,30 +117,31 @@ export function OcorrenciaMultiStepForm({ onClose, onSuccess, initialData, defau
 
   const isNew = !initialData;
 
-  // Lógica inteligente de Step Inicial: 
+  const currentCategoria = initialData?.categoria || defaultCategoria;
+  const { tableName: mainTableName, involvedTableName, foreignKeyName } = getTableConfig(currentCategoria);
+
+  const isEmbriaguez = currentCategoria === 'embriaguez';
+  const totalSteps = isEmbriaguez ? 6 : 5;
+
   const [step, setStep] = useState(() => {
-    // Se vier com origem pré-definida (ex: Chamado ou Parceiro), pula o passo 1
     if (initialData?.origem) return 2;
     return 1;
   });
 
-
-
-
-
-  
   const [loading, setLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [draftId, setDraftId] = useState<string | null>(initialData?.id || null);
   const isSaving = useRef(false);
 
   const [origemSelecionada, setOrigemSelecionada] = useState(!!initialData?.origem);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [photos, setPhotos] = useState<{file: File, preview: string}[]>([]);
-  const autosaveTimer = useRef<NodeJS.Timeout | null>(null);
+   const [showSuccessModal, setShowSuccessModal] = useState(false);
+   const [showDeleteModal, setShowDeleteModal] = useState(false);
+   const [deleteIndexTarget, setDeleteIndexTarget] = useState<number | null>(null);
+   const [photos, setPhotos] = useState<{file: File, preview: string}[]>([]);
+    const autosaveTimer = useRef<NodeJS.Timeout | null>(null);
 
-  const isEmbriaguez = (initialData?.categoria || defaultCategoria) === 'embriaguez';
-  const totalSteps = isEmbriaguez ? 6 : 5;
+    const { addToQueue } = useOfflineStore();
+    const [offlineId] = useState(() => crypto.randomUUID());
 
   const { register, control, handleSubmit, watch, setValue, reset, formState: { errors } } = useForm<OcorrenciaFormData>({
     resolver: zodResolver(ocorrenciaSchema),
@@ -211,18 +228,18 @@ export function OcorrenciaMultiStepForm({ onClose, onSuccess, initialData, defau
 
   const canProceed = isStepValid();
 
-  // Efeito de Auto-Save Robusto (Debounced)
+  // Efeito de Auto-Save Robusto (Debounced) - Dispara em todos os passos
   useEffect(() => {
-    if (isSubmitting || isSaving.current) return;
+    if (initialData?.status === 'finalizada' || isSubmitting || isSaving.current) return;
     
-    const isStarted = watchAllFields.descricao?.length > 5 || watchAllFields.rua;
-    if (isStarted) {
+    // Auto-save assim que a origem for selecionada (passo 1 em diante)
+    if (watchAllFields.origem) {
       if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
       autosaveTimer.current = setTimeout(() => {
         handleSaveDraft();
       }, 2000); 
     }
-  }, [watchAllFields, step, isSubmitting]); 
+  }, [watchAllFields, step, isSubmitting]);
 
 
 
@@ -249,55 +266,67 @@ export function OcorrenciaMultiStepForm({ onClose, onSuccess, initialData, defau
       bairro: data.bairro || 'Pendente',
       referencia: data.ponto_referencia || '',
       coordenadas: data.coordenadas || '',
-      // Colunas extras da migração 025
       titulo: isEmbriaguez ? `Embriaguez - ${data.envolvidos?.find((e:any) => e.tipo === 'Suspeito')?.nome_completo || 'Em preenchimento'}` : (data.natureza?.[0] || 'Ocorrência em preenchimento'),
-      categoria: data.categoria || 'padrao',
       ultimo_passo: step,
       cep: data.cep || '',
       cidade: data.cidade || '',
       estado: data.estado || '',
       canal_origem: data.sub_origem || '',
-      
-      // Persistência Módulo Embriaguez no Rascunho
-      etilometro_marca: data.etilometro_marca,
-      etilometro_serie: data.etilometro_serie,
-      etilometro_resultado: data.etilometro_resultado,
-      etilometro_validade: data.etilometro_validade,
-      etilometro_realizado: data.etilometro_realizado,
-      sinais_aparencia: data.sinais_aparencia,
-      sinais_atitude: data.sinais_atitude,
-      teste_linha_reta: data.teste_linha_reta,
-      teste_um_pe: data.teste_um_pe,
-      teste_dedo_nariz: data.teste_dedo_nariz,
-      admitiu_ingestao: data.admitiu_ingestao,
-      ingestao_quantidade: data.ingestao_quantidade,
-      ingestao_tempo: data.ingestao_tempo,
-      conclusao_tecnica: data.conclusao_tecnica,
+      tipo_origem: data.sub_origem || '',
+      ...(isEmbriaguez ? {
+        etilometro_marca: data.etilometro_marca,
+        etilometro_serie: data.etilometro_serie,
+        etilometro_resultado: data.etilometro_resultado,
+        etilometro_validade: data.etilometro_validade,
+        etilometro_realizado: data.etilometro_realizado,
+        etilometro_justificativa: data.etilometro_justificativa,
+        sinais_aparencia: data.sinais_aparencia,
+        sinais_atitude: data.sinais_atitude,
+        teste_linha_reta: data.teste_linha_reta,
+        teste_um_pe: data.teste_um_pe,
+        teste_dedo_nariz: data.teste_dedo_nariz,
+        admitiu_ingestao: data.admitiu_ingestao,
+        ingestao_quantidade: data.ingestao_quantidade,
+        ingestao_tempo: data.ingestao_tempo,
+        conclusao_tecnica: data.conclusao_tecnica,
+        natureza_alteracao: data.natureza_alteracao || null,
+      } : {}),
     };
 
+    // Adicionar chamado_id se vier de um chamado
+    if (currentCategoria === 'chamados' && initialData?.chamado_id) {
+      payload.chamado_id = initialData.chamado_id;
+    }
 
+    const tableName = mainTableName;
+    const currentId = draftId || offlineId;
 
-
-
-    const tableName = isEmbriaguez ? 'embriaguez' : 'ocorrencias';
+    if (!navigator.onLine) {
+      addToQueue({
+        id: currentId,
+        tableName,
+        data: payload,
+        action: 'insert'
+      });
+      return;
+    }
 
     try {
       isSaving.current = true;
-      if (draftId) {
-        const { error } = await supabase.from(tableName).update(payload).eq('id', draftId);
-        if (error) throw error;
-      } else {
-        const { data: newOc, error } = await supabase.from(tableName).insert([payload]).select().single();
-        if (error) {
-          console.error('SUPABASE ERROR (Insert):', error);
-          throw error;
-        }
-        if (newOc) {
-           setDraftId(newOc.id);
-        }
-      }
+      const { error } = await supabase.from(tableName).upsert([{ ...payload, id: currentId }]);
+      if (error) throw error;
+      if (!draftId) setDraftId(currentId);
     } catch (err: any) {
       console.error('AUTO-SAVE FAILED:', err);
+      // Fallback to offline queue on network error
+      if (err.message?.includes('Fetch') || err.code === 'PGRST100') {
+         addToQueue({
+            id: currentId,
+            tableName,
+            data: payload,
+            action: 'insert'
+         });
+      }
     } finally {
       isSaving.current = false;
     }
@@ -319,11 +348,10 @@ export function OcorrenciaMultiStepForm({ onClose, onSuccess, initialData, defau
       if (data.origem === 'CENTRAL DE RÁDIO' || data.origem === 'DENÚNCIA ANÔNIMA') origem_tipo = 'RADIO';
       if (data.origem === 'ÓRGÃOS PARCEIROS' || data.origem === 'FORÇAS DE SEGURANÇA') origem_tipo = 'PARCEIRO';
 
-      const payload = {
+const payload: any = {
         instituicao_id: profile.instituicao_id,
         criador_id: profile.id,
         status: isFinal ? 'finalizada' : 'rascunho',
-        categoria: data.categoria,
         ultimo_passo: step,
         prioridade: 'media',
         origem: data.origem || (isAgent ? 'EQUIPE' : 'CENTRAL DE RÁDIO'),
@@ -338,32 +366,35 @@ export function OcorrenciaMultiStepForm({ onClose, onSuccess, initialData, defau
         referencia: data.ponto_referencia || '',
         coordenadas: data.coordenadas || '',
         cep: data.cep || '',
-        natureza_alteracao: data.natureza_alteracao || '',
+        natureza_alteracao: data.natureza_alteracao || null,
         canal_origem: data.sub_origem || '',
         tipo_origem: data.sub_origem || '',
         titulo: isEmbriaguez ? `Embriaguez - ${data.envolvidos.find(e => e.tipo === 'Condutor')?.nome_completo || 'Condutor'}` : (data.natureza?.[0] || 'Ocorrência registrada'),
         
-        // Novos campos embriaguez
-        etilometro_marca: data.etilometro_marca,
-        etilometro_serie: data.etilometro_serie,
-        etilometro_resultado: data.etilometro_resultado,
-        etilometro_validade: data.etilometro_validade,
-        etilometro_realizado: data.etilometro_realizado,
-        etilometro_justificativa: data.etilometro_justificativa,
-        sinais_aparencia: data.sinais_aparencia,
-        sinais_atitude: data.sinais_atitude,
-        teste_linha_reta: data.teste_linha_reta,
-        teste_um_pe: data.teste_um_pe,
-        teste_dedo_nariz: data.teste_dedo_nariz,
-        admitiu_ingestao: data.admitiu_ingestao,
-        ingestao_quantidade: data.ingestao_quantidade,
-        ingestao_tempo: data.ingestao_tempo,
-        conclusao_tecnica: data.conclusao_tecnica,
-
-
-
-
+        ...(isEmbriaguez ? {
+          etilometro_marca: data.etilometro_marca,
+          etilometro_serie: data.etilometro_serie,
+          etilometro_resultado: data.etilometro_resultado,
+          etilometro_validade: data.etilometro_validade,
+          etilometro_realizado: data.etilometro_realizado,
+          etilometro_justificativa: data.etilometro_justificativa,
+          sinais_aparencia: data.sinais_aparencia,
+          sinais_atitude: data.sinais_atitude,
+          teste_linha_reta: data.teste_linha_reta,
+          teste_um_pe: data.teste_um_pe,
+          teste_dedo_nariz: data.teste_dedo_nariz,
+          admitiu_ingestao: data.admitiu_ingestao,
+          ingestao_quantidade: data.ingestao_quantidade,
+          ingestao_tempo: data.ingestao_tempo,
+          conclusao_tecnica: data.conclusao_tecnica,
+          natureza_alteracao: data.natureza_alteracao || null,
+        } : {}),
       };
+
+      // Adicionar chamado_id se vier de um chamado
+      if (currentCategoria === 'chamados' && initialData?.chamado_id) {
+        payload.chamado_id = initialData.chamado_id;
+      }
 
 
       let currentId = draftId;
@@ -400,57 +431,78 @@ export function OcorrenciaMultiStepForm({ onClose, onSuccess, initialData, defau
         fotos: uploadedPhotos.length > 0 ? uploadedPhotos : (initialData?.fotos || [])
       };
 
+      const finalId = draftId || offlineId;
 
-      const tableName = isEmbriaguez ? 'embriaguez' : 'ocorrencias';
-      const involvedTableName = isEmbriaguez ? 'embriaguez_envolvidos' : 'ocorrencia_envolvidos';
-      const foreignKeyName = isEmbriaguez ? 'embriaguez_id' : 'ocorrencia_id';
-
-      if (currentId) {
-        const { error: updateError } = await supabase.from(tableName).update(payloadFinal).eq('id', currentId);
-        if (updateError) {
-          console.error('ERRO NO UPDATE FINAL:', updateError);
-          throw updateError;
+      if (!navigator.onLine) {
+        addToQueue({
+          id: finalId,
+          tableName: mainTableName,
+          data: payloadFinal,
+          action: 'insert',
+          related: involvedTableName ? {
+            tableName: involvedTableName,
+            foreignKey: foreignKeyName,
+            items: data.envolvidos
+          } : undefined
+        });
+        
+        if (isFinal) {
+          setShowSuccessModal(true);
+          onSuccess();
+        } else {
+          onSuccess();
+          onClose();
         }
-      } else {
-        const { data: newOc, error: insertError } = await supabase.from(tableName).insert([payloadFinal]).select().single();
-        if (insertError) {
-          console.error('ERRO NO INSERT FINAL:', insertError);
-          throw insertError;
-        }
-        if (newOc) currentId = newOc.id;
+        return;
       }
 
 
-      if (currentId) {
-        const { error: delError } = await supabase.from(involvedTableName).delete().eq(foreignKeyName, currentId);
-        if (delError) console.warn('Erro ao limpar envolvidos:', delError);
+        const { error: upsertError } = await supabase.from(mainTableName).upsert([{ ...payloadFinal, id: finalId }]);
+        if (upsertError) throw upsertError;
 
-        if (data.envolvidos.length > 0) {
-          const { error: invError } = await supabase.from(involvedTableName).insert(
-            data.envolvidos.map(e => ({ ...e, [foreignKeyName]: currentId }))
-          );
-          if (invError) {
-            console.error('ERRO NOS ENVOLVIDOS:', invError);
-            toast.error('Ocorrência salva, mas houve um erro nos envolvidos.');
-          }
+        if (finalId && involvedTableName && foreignKeyName) {
+           await supabase.from(involvedTableName).delete().eq(foreignKeyName, finalId);
+           if (data.envolvidos.length > 0) {
+              const { error: invError } = await supabase.from(involvedTableName).insert(
+                data.envolvidos.map(e => ({ ...e, [foreignKeyName]: finalId }))
+              );
+              if (invError) console.error('ERRO NOS ENVOLVIDOS:', invError);
+           }
         }
-      }
 
-
-      if (isFinal) {
-        setShowSuccessModal(true);
-        onSuccess();
-      } else {
-        onSuccess();
-        onClose();
+        if (isFinal) {
+          setShowSuccessModal(true);
+          onSuccess();
+        } else {
+          onSuccess();
+          onClose();
+        }
+      } catch (error: any) {
+        console.error('ERRO NO SUBMIT:', error);
+        // Fallback offline
+        addToQueue({
+          id: finalId,
+          tableName: mainTableName,
+          data: payloadFinal,
+          action: 'insert',
+          related: involvedTableName ? {
+            tableName: involvedTableName,
+            foreignKey: foreignKeyName,
+            items: data.envolvidos
+          } : undefined
+        });
+        toast.warning('Erro de conexão. A ocorrência foi salva localmente e será sincronizada em breve.');
+        if (isFinal) {
+          setShowSuccessModal(true);
+          onSuccess();
+        } else {
+          onSuccess();
+          onClose();
+        }
+      } finally {
+        setLoading(false);
+        setIsSubmitting(false);
       }
-    } catch (error: any) {
-      console.error('ERRO NO SUBMIT:', error);
-      toast.error(`Falha ao registrar: ${error.message || 'Erro desconhecido'}`);
-    } finally {
-      setLoading(false);
-      setIsSubmitting(false);
-    }
   };
 
 
@@ -643,9 +695,12 @@ export function OcorrenciaMultiStepForm({ onClose, onSuccess, initialData, defau
                   setValue('rua', loc.rua);
                   setValue('bairro', loc.bairro);
                   setValue('cep', loc.cep);
+                  setValue('cidade', loc.cidade);
+                  setValue('estado', loc.estado);
                   setValue('numero', loc.numero || '');
                   setValue('coordenadas', loc.coordenadas || '');
                 }}
+
               />
               
               <div className="space-y-2">
@@ -681,17 +736,7 @@ export function OcorrenciaMultiStepForm({ onClose, onSuccess, initialData, defau
                 {fields.map((field, index) => (
                   <div key={field.id} className="p-8 bg-white border border-slate-200 rounded-[2.5rem] shadow-sm space-y-8 relative overflow-hidden group">
                     <div className="absolute top-0 left-0 w-2 h-full bg-indigo-600" />
-                    {(!isEmbriaguez || index > 0) && (
-                      <button 
-                        type="button"
-                        onClick={() => remove(index)}
-                        className="absolute top-6 right-6 p-3 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all"
-                      >
-                        <Trash2 className="w-5 h-5" />
-                      </button>
-                    )}
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2">
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
                           {isEmbriaguez && index === 0 ? 'Nome do Condutor' : 'Nome Completo'}
@@ -794,10 +839,25 @@ export function OcorrenciaMultiStepForm({ onClose, onSuccess, initialData, defau
                             rows={3}
                             className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm outline-none resize-none"
                           />
-                       </div>
-                    </div>
-                  </div>
-                ))}
+                        </div>
+                     </div>
+
+                     {(!isEmbriaguez || index > 0) && (
+                        <div className="flex justify-end pt-4 border-t border-slate-100">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setDeleteIndexTarget(index);
+                              setShowDeleteModal(true);
+                            }}
+                            className="flex items-center gap-2 px-4 py-2 text-xs font-bold text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                          >
+                            <Trash2 className="w-4 h-4" /> Remover Envolvido
+                          </button>
+                        </div>
+                      )}
+                   </div>
+                 ))}
 
                 {fields.length === 0 && (
                   <div className="text-center py-20 bg-slate-50 rounded-[3rem] border-2 border-dashed border-slate-100">
@@ -1010,7 +1070,32 @@ export function OcorrenciaMultiStepForm({ onClose, onSuccess, initialData, defau
                  </div>
               </div>
 
-              {/* 5.5 Conclusão */}
+              {/* 5.5 Natureza da Alteração */}
+              <div className="space-y-4">
+                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Natureza da Alteração Observada</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {[
+                    { label: 'Álcool', val: 'Álcool' },
+                    { label: 'Drogas Ilícitas', val: 'Drogas Ilícitas' },
+                    { label: 'Crise Psiquiátrica', val: 'Crise Psiquiátrica (sem álcool ou drogas)' },
+                    { label: 'Abstinência', val: 'Abstinência' },
+                    { label: 'Causa Médica (Diabetes, AVC, etc)', val: 'Causa Médica (diabetes, AVC, epilepsia)' },
+                  ].map(n => (
+                    <button
+                      key={n.val}
+                      type="button"
+                      onClick={() => setValue('natureza_alteracao', n.val)}
+                      className={`px-6 py-4 rounded-2xl text-xs font-black text-left transition-all border ${
+                        watch('natureza_alteracao') === n.val ? 'bg-amber-600 border-amber-600 text-white shadow-xl' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                      }`}
+                    >
+                      {n.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 5.6 Conclusão */}
               <div className="space-y-4">
                 <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Conclusão Técnica do Agente</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -1142,15 +1227,15 @@ export function OcorrenciaMultiStepForm({ onClose, onSuccess, initialData, defau
               <>
                 <button 
                   onClick={handleSubmit(d => onSubmit(d, false))}
-                  disabled={loading}
-                  className="px-8 py-3 bg-white border border-slate-200 text-slate-600 font-black text-xs uppercase tracking-widest rounded-2xl hover:bg-slate-50 transition-all active:scale-95"
+                  disabled={loading || initialData?.status === 'finalizada'}
+                  className="px-8 py-3 bg-white border border-slate-200 text-slate-600 font-black text-xs uppercase tracking-widest rounded-2xl hover:bg-slate-50 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Salvar Rascunho
                 </button>
                 <button 
                   onClick={handleSubmit(d => onSubmit(d, true))}
-                  disabled={loading}
-                  className="px-12 py-3 bg-emerald-600 text-white font-black text-xs uppercase tracking-widest rounded-2xl hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-600/20 flex items-center gap-3 active:scale-95"
+                  disabled={loading || initialData?.status === 'finalizada'}
+                  className="px-12 py-3 bg-emerald-600 text-white font-black text-xs uppercase tracking-widest rounded-2xl hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-600/20 flex items-center gap-3 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle className="w-5 h-5" />}
                   Registrar Ocorrência
@@ -1200,8 +1285,49 @@ export function OcorrenciaMultiStepForm({ onClose, onSuccess, initialData, defau
             </div>
           </div>
         </div>
-      )}
-    </div>
+       )}
 
-  );
-}
+       {/* Modal de Confirmação de Exclusão */}
+       {showDeleteModal && (
+         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
+           <div className="bg-white rounded-[32px] w-full max-w-sm p-8 shadow-2xl animate-in zoom-in-95 duration-300">
+             <div className="flex flex-col items-center text-center">
+               <div className="w-20 h-20 bg-red-100 text-red-600 rounded-full flex items-center justify-center mb-6">
+                 <Trash2 className="w-10 h-10" />
+               </div>
+               <h3 className="text-xl font-black text-slate-900 mb-2">Remover Envolvido</h3>
+               <p className="text-sm text-slate-500 font-medium mb-8">
+                 Tem certeza que deseja remover este envolvido? Esta ação não pode ser desfeita.
+               </p>
+               
+               <div className="w-full space-y-3">
+                 <button
+                   onClick={() => {
+                     if (deleteIndexTarget !== null) {
+                       remove(deleteIndexTarget);
+                     }
+                     setShowDeleteModal(false);
+                     setDeleteIndexTarget(null);
+                   }}
+                   className="w-full py-4 bg-red-600 text-white rounded-2xl font-bold text-sm hover:bg-red-700 transition-all shadow-lg shadow-red-600/20 active:scale-95 flex items-center justify-center gap-2"
+                 >
+                   <Trash2 className="w-4 h-4" /> Confirmar Exclusão
+                 </button>
+                 <button
+                   onClick={() => {
+                     setShowDeleteModal(false);
+                     setDeleteIndexTarget(null);
+                   }}
+                   className="w-full py-4 bg-slate-100 text-slate-600 rounded-2xl font-bold text-sm hover:bg-slate-200 transition-all active:scale-95"
+                 >
+                   Cancelar
+                 </button>
+               </div>
+             </div>
+           </div>
+         </div>
+       )}
+     </div>
+
+   );
+ }

@@ -140,13 +140,25 @@ export function LocationInput({ onLocationChange, defaultValues }: LocationInput
       try {
         // Tenta BrasilAPI/ViaCEP primeiro para dados oficiais
         const data = await fetchCEP(digits);
-        if (data && data.rua) {
-          setRua(data.rua);
-          setBairro(data.bairro);
+        if (data && data.cidade) {
+          if (data.rua) setRua(data.rua);
+          if (data.bairro) setBairro(data.bairro);
           setCidade(data.cidade);
           setEstado(data.estado);
-          updateParent(data.rua, data.bairro, formatted, data.cidade, data.estado, numero, coordenadas);
+          
+          updateParent(
+            data.rua || rua, 
+            data.bairro || bairro, 
+            formatted, 
+            data.cidade, 
+            data.estado, 
+            numero, 
+            coordenadas
+          );
+
+          toast.success('Localização encontrada via CEP');
         } else {
+
           // Se falhar ou for CEP geral, busca no Nominatim para listar ruas
           const response = await fetch(
             `https://nominatim.openstreetmap.org/search?postalcode=${digits}&country=brazil&format=json&addressdetails=1`
@@ -281,9 +293,11 @@ export function LocationInput({ onLocationChange, defaultValues }: LocationInput
             type="text"
             value={numero}
             onChange={(e) => {
-              setNumero(e.target.value);
-              updateParent(rua, bairro, cep, e.target.value, coordenadas);
+              const val = e.target.value;
+              setNumero(val);
+              updateParent(rua, bairro, cep, cidade, estado, val, coordenadas);
             }}
+
             placeholder="S/N"
             className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-600/20 focus:border-indigo-600 outline-none transition-all"
           />
