@@ -1,23 +1,25 @@
 import React from 'react';
-import { 
-  User, 
-  Mail, 
-  Shield, 
-  Badge, 
-  Calendar, 
-  Building2, 
+import {
+  User,
+  Mail,
+  Shield,
+  Badge,
+  Calendar,
+  Building2,
   Hash,
   Activity,
   UserCheck,
   MapPin,
   Phone,
   FileText,
-  Clock
+  Clock,
+  CheckCircle2
 } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 
 export function ProfilePage() {
   const profile = useAuthStore(state => state.profile);
+  const institution = useAuthStore(state => state.institution);
   
   if (!profile) return null;
 
@@ -34,9 +36,18 @@ export function ProfilePage() {
   ];
 
   const institutionInfo = [
-    { icon: Building2, label: 'Razão Social', value: profile.instituicoes?.razao_social || 'GCM Municipal' },
-    { icon: Hash, label: 'CNPJ', value: profile.instituicoes?.cnpj || 'Não informado' },
-    { icon: MapPin, label: 'Localidade', value: `${profile.instituicoes?.cidade || ''} - ${profile.instituicoes?.estado || ''}` },
+    { icon: Building2, label: 'Razão Social', value: institution?.razao_social || 'GCM Municipal' },
+    { icon: Hash, label: 'CNPJ', value: institution?.cnpj || 'Não informado' },
+    { icon: Phone, label: 'Telefone', value: institution?.telefone || 'Não informado' },
+    { icon: MapPin, label: 'Endereço', value: [
+        institution?.logradouro,
+        institution?.numero,
+        institution?.complemento
+      ].filter(Boolean).join(', ') || 'Não informado' },
+    { icon: MapPin, label: 'Bairro', value: institution?.bairro || 'Não informado' },
+    { icon: MapPin, label: 'Cidade/Estado', value: `${institution?.cidade || ''} - ${institution?.estado || ''}` },
+    { icon: Hash, label: 'CEP', value: institution?.cep || 'Não informado' },
+    { icon: CheckCircle2, label: 'Status da Assinatura', value: institution?.status_assinatura || 'Pendente', color: institution?.status_assinatura === 'ativa' ? 'text-emerald-600' : 'text-amber-600' },
   ];
 
   return (
@@ -111,9 +122,9 @@ export function ProfilePage() {
         </div>
       </div>
 
-      {/* Info Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        
+      {/* Info Grid - Full Width Stack */}
+      <div className="space-y-8">
+         
         {/* Personal Details */}
         <div className="space-y-6">
           <div className="flex items-center gap-3">
@@ -157,30 +168,36 @@ export function ProfilePage() {
              </div>
           </div>
 
-          <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/50 p-8 space-y-8">
-             <div className="flex items-center gap-6 p-4 bg-slate-50 rounded-3xl border border-slate-100">
-                <div className="w-16 h-16 rounded-2xl bg-white border border-slate-200 flex items-center justify-center text-slate-300">
-                   <Building2 className="w-8 h-8" />
-                </div>
-                <div className="flex-1">
-                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Instituição Vinculada</p>
-                   <h4 className="text-lg font-black text-slate-900 tracking-tight">{profile.instituicoes?.razao_social || 'Guarda Civil Municipal'}</h4>
-                </div>
-             </div>
+              <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/50 p-8 space-y-8">
+              <div className="flex items-center gap-6 p-4 bg-slate-50 rounded-3xl border border-slate-100">
+                 <div className="w-16 h-16 rounded-2xl bg-white border border-slate-200 flex items-center justify-center text-slate-300">
+                    <Building2 className="w-8 h-8" />
+                 </div>
+                 <div className="flex-1">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Instituição Vinculada</p>
+                    <h4 className="text-lg font-black text-slate-900 tracking-tight">{institution?.razao_social || 'Guarda Civil Municipal'}</h4>
+                 </div>
+                 {profile?.perfil_acesso === 'gestor' && (
+                    <div className="text-right">
+                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Gestor Responsável</p>
+                       <p className="text-sm font-bold text-slate-700">{profile.primeiro_nome} {profile.sobrenome}</p>
+                    </div>
+                 )}
+              </div>
 
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {institutionInfo.map((info, i) => (
-                   <div key={i} className="space-y-1.5">
-                      <div className="flex items-center gap-2 text-slate-400">
-                         <info.icon className="w-4 h-4" />
-                         <span className="text-[10px] font-black uppercase tracking-widest">{info.label}</span>
-                      </div>
-                      <p className="text-sm font-bold text-slate-700 truncate">
-                         {info.value}
-                      </p>
-                   </div>
-                ))}
-             </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                 {institutionInfo.map((info, i) => (
+                    <div key={i} className="space-y-1.5">
+                       <div className="flex items-center gap-2 text-slate-400">
+                          <info.icon className="w-4 h-4" />
+                          <span className="text-[10px] font-black uppercase tracking-widest">{info.label}</span>
+                       </div>
+                       <p className={`text-sm font-bold ${info.color || 'text-slate-700'} whitespace-pre-wrap`}>
+                          {info.value}
+                       </p>
+                    </div>
+                 ))}
+              </div>
           </div>
         </div>
 

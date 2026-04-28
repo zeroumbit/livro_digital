@@ -189,8 +189,7 @@ const GenerosModal: React.FC<{isOpen: boolean; onClose: () => void; onSelect: (g
   </div>
 );
 
-const VeiculosModal: React.FC<{isOpen: boolean; onClose: () => void; onSelect: (veiculo: string) => void;}> = ({ isOpen, onClose, onSelect }) => {
-  const veiculos = ['Carro', 'Moto'];
+const VeiculosModal: React.FC<{isOpen: boolean; onClose: () => void; onSelect: (veiculo: string) => void; data: string[]}> = ({ isOpen, onClose, onSelect, data }) => {
   return (
     <div className={`fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm ${isOpen ? '' : 'hidden'}`}>
       <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl p-6 animate-in zoom-in-95 duration-200">
@@ -199,7 +198,7 @@ const VeiculosModal: React.FC<{isOpen: boolean; onClose: () => void; onSelect: (
           <button onClick={onClose}><X className="w-5 h-5 text-slate-400" /></button>
         </div>
         <div className="space-y-2">
-          {veiculos.map(v => (
+          {data.map((v: string) => (
             <button
               key={v}
               onClick={() => { onSelect(v); onClose(); }}
@@ -452,11 +451,10 @@ export function OcorrenciasPage({ categoria = 'padrao', title = 'Registro de Oco
     return [...new Set(ocorrencias.map((oc: any) => oc.veiculo_tipo).filter(Boolean))].sort();
   }, [ocorrencias]);
 
-  const dataOrigens = [
-    { tipo: 'radio', label: 'Rádio' },
-    { tipo: 'parceiro', label: 'Parceiros' },
-    { tipo: 'agente', label: 'Agente' },
-  ];
+   const dataOrigens = useMemo(() => {
+     const origens = [...new Set(ocorrencias.map((oc: any) => oc.origem_tipo).filter(Boolean))];
+     return origens.map((o: string) => ({ tipo: o, label: o.charAt(0).toUpperCase() + o.slice(1) }));
+   }, [ocorrencias]);
 
   const openDetails = async (oc: any) => {
     setSelectedOc(oc);
@@ -956,7 +954,12 @@ export function OcorrenciasPage({ categoria = 'padrao', title = 'Registro de Oco
       <RuasUnicas isOpen={modalRuasOpen} onClose={() => setModalRuasOpen(false)} onSelect={(rua) => { setFilterValue(rua); setFilterTipo('rua'); }} data={dataRuas} />
       <BairrosModal isOpen={modalBairrosOpen} onClose={() => setModalBairrosOpen(false)} onSelect={(bairro) => { setFilterValue(bairro); setFilterTipo('bairro'); }} data={dataBairros} />
       <GenerosModal isOpen={modalGenerosOpen} onClose={() => setModalGenerosOpen(false)} onSelect={(genero) => setFilterGenero(genero)} data={dataGeneros} />
-      <VeiculosModal isOpen={modalVeiculosOpen} onClose={() => setModalVeiculosOpen(false)} onSelect={(veiculo) => setFilterVeiculo(veiculo)} />
+      <VeiculosModal
+        isOpen={modalVeiculosOpen}
+        onClose={() => setModalVeiculosOpen(false)}
+        onSelect={(veiculo) => setFilterVeiculo(veiculo)}
+        data={dataVeiculos}
+      />
       <OrigemModal isOpen={modalOrigemOpen} onClose={() => setModalOrigemOpen(false)} onSelect={(origem) => setFilterOrigem(origem)} data={dataOrigens} />
       <HorarioModal isOpen={modalHorarioOpen} onClose={() => setModalHorarioOpen(false)} onApply={(inicio, fim) => { setFilterHoraInicio(inicio); setFilterHoraFim(fim); }} />
 

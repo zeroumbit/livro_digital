@@ -23,6 +23,28 @@ export function AssinaturaPage() {
   const { institution, setInstitution } = useAuthStore();
   const [propostas, setPropostas] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [usuariosCount, setUsuariosCount] = useState(0);
+  const [loadingUsuarios, setLoadingUsuarios] = useState(true);
+
+  useEffect(() => {
+    const fetchUsuarios = async () => {
+      if (!institution?.id) return;
+      setLoadingUsuarios(true);
+      try {
+        const { count } = await supabase
+          .from('usuarios')
+          .select('*', { count: 'exact', head: true })
+          .eq('instituicao_id', institution.id)
+          .eq('status', 'ativo');
+        setUsuariosCount(count || 0);
+      } catch (error) {
+        console.error('Erro ao carregar usuários:', error);
+      } finally {
+        setLoadingUsuarios(false);
+      }
+    };
+    fetchUsuarios();
+  }, [institution?.id]);
 
   const fetchPropostas = async () => {
     if (!institution?.id) return;
@@ -140,12 +162,12 @@ export function AssinaturaPage() {
                               <CheckCircle2 className="w-5 h-5 mr-2" /> Ativa
                           </div>
                       </div>
-                      <div className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100">
-                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Próximo Faturamento</p>
-                          <div className="flex items-center text-slate-700 font-black text-lg uppercase tracking-tight">
-                              <Clock className="w-5 h-5 mr-2 text-slate-400" /> 10 Mai 2026
-                          </div>
-                      </div>
+          <div className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100">
+                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Próximo Faturamento</p>
+                           <div className="flex items-center text-slate-700 font-black text-lg uppercase tracking-tight">
+                               <Clock className="w-5 h-5 mr-2 text-slate-400" /> {institution?.proxima_cobranca ? new Date(institution.proxima_cobranca).toLocaleDateString('pt-BR') : '---'}
+                           </div>
+                       </div>
                   </div>
 
                   <div className="space-y-4 pt-10 border-t border-slate-50">
@@ -165,24 +187,31 @@ export function AssinaturaPage() {
           </div>
 
           <div className="space-y-8">
-              <div className="bg-slate-900 rounded-[2.5rem] p-8 text-white">
-                  <TrendingUp className="w-10 h-10 text-indigo-400 mb-6" />
-                  <h4 className="text-xl font-black mb-4">Uso da Cota</h4>
-                  <div className="space-y-6">
-                      <div>
-                          <div className="flex justify-between text-xs font-bold mb-2">
-                              <span className="text-slate-400">Usuários Ativos</span>
-                              <span>12 / {institution?.planos?.limite_usuarios || 50}</span>
-                          </div>
-                          <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden">
-                              <div className="h-full bg-indigo-500 rounded-full" style={{ width: '24%' }}></div>
-                          </div>
-                      </div>
-                      <p className="text-[10px] text-slate-500 leading-relaxed font-bold uppercase tracking-widest">
-                          Ao atingir o limite, novos usuários não poderão ser cadastrados sem um upgrade de plano.
-                      </p>
-                  </div>
-              </div>
+          <div className="bg-slate-900 rounded-[2.5rem] p-8 text-white">
+                   <TrendingUp className="w-10 h-10 text-indigo-400 mb-6" />
+                   <h4 className="text-xl font-black mb-4">Uso da Cota</h4>
+                   <div className="space-y-6">
+                       {loadingUsuarios ? (
+                         <div className="animate-pulse">
+                           <div className="h-4 bg-white/10 rounded w-3/4 mb-2"></div>
+                           <div className="h-2 bg-white/10 rounded w-full"></div>
+                         </div>
+                       ) : (
+                       <div>
+                           <div className="flex justify-between text-xs font-bold mb-2">
+                               <span className="text-slate-400">Usuários Ativos</span>
+                               <span>{usuariosCount} / {institution?.planos?.limite_usuarios || 50}</span>
+                           </div>
+                           <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden">
+                               <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${usuariosCount > 0 ? (usuariosCount / (institution?.planos?.limite_usuarios || 50)) * 100 : 0}%` }}></div>
+                           </div>
+                       </div>
+                       )}
+                       <p className="text-[10px] text-slate-500 leading-relaxed font-bold uppercase tracking-widest">
+                           Ao atingir o limite, novos usuários não poderão ser cadastrados sem um upgrade de plano.
+                       </p>
+                   </div>
+               </div>
 
               <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm text-center">
                   <CreditCard className="w-10 h-10 text-slate-200 mx-auto mb-4" />

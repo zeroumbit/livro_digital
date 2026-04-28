@@ -98,6 +98,7 @@ export const DashboardGestor = React.memo(({ isVisible }: { isVisible?: boolean 
   const [chartData, setChartData] = useState<any[]>([]);
   const [pieData, setPieData] = useState<any[]>([]);
   const [atividadesRecentes, setAtividadesRecentes] = useState<any[]>([]);
+  const [zonasStatus, setZonasStatus] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -115,16 +116,16 @@ export const DashboardGestor = React.memo(({ isVisible }: { isVisible?: boolean 
           .lte('created_at', `${hoje}T23:59:59`);
 
         const { count: efetivoAtivo } = await supabase
-          .from('profiles')
+          .from('usuarios')
           .select('*', { count: 'exact', head: true })
           .eq('instituicao_id', institution.id)
           .eq('status', 'ativo');
 
         const { count: viaturasEmUso } = await supabase
-          .from('viaturas')
+          .from('veiculos')
           .select('*', { count: 'exact', head: true })
           .eq('instituicao_id', institution.id)
-          .eq('status', 'em_patrulhamento');
+          .eq('status', 'ativo');
 
         const { data: bairros } = await supabase
           .from('ocorrencias')
@@ -179,27 +180,60 @@ export const DashboardGestor = React.memo(({ isVisible }: { isVisible?: boolean 
 
         setPieData(pieResult.length > 0 ? pieResult : []);
 
-        const { data: logs } = await supabase
-          .from('logs')
-          .select('*, profiles(nome, perfil_acesso)')
+        const { data: auditoria } = await supabase
+          .from('tenant_auditoria')
+          .select('*')
           .eq('instituicao_id', institution.id)
           .order('created_at', { ascending: false })
           .limit(5);
 
         const tipoMap: Record<string, string> = {
-          'ocorrencia': 'ocorrencia',
-          'viatura': 'viatura',
-          'equipe': 'equipe',
-          'alerta': 'alerta'
+          'ocorrencias': 'ocorrencia',
+          'veiculos': 'viatura',
+          'equipes': 'equipe',
+          'chamados': 'ocorrencia',
+          'alertas': 'alerta'
         };
 
         setAtividadesRecentes(
-          (logs || []).map((log: any) => ({
-            title: log.descricao || 'Atividade registrada',
+          (auditoria || []).map((log: any) => ({
+            title: log.detalhe || log.acao || 'Atividade registrada',
             time: new Date(log.created_at).toLocaleString('pt-BR'),
-            type: tipoMap[log.tipo] || 'ocorrencia'
+            type: tipoMap[log.modulo?.toLowerCase()] || 'ocorrencia'
           }))
         );
+
+        const { data: bairrosOcorrencias } = await supabase
+          .from('ocorrencias')
+          .select('bairro')
+          .eq('instituicao_id', institution.id)
+          .not('bairro', 'is', null)
+          .order('created_at', { ascending: false })
+          .limit(50);
+
+        const bairroCount: Record<string, number> = {};
+        bairrosOcorrencias?.forEach((o: any) => {
+          bairroCount[o.bairro] = (bairroCount[o.bairro] || 0) + 1;
+        });
+
+        const zonas = Object.entries(bairroCount)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 3)
+          .map(([bairro, count]) => {
+            let status = 'Tranquilo';
+            let statusColor = 'emerald';
+            if (count > 10) {
+              status = 'Atenção';
+              statusColor = 'amber';
+            }
+            if (count > 20) {
+              status = 'Crítico';
+              statusColor = 'rose';
+            }
+            return { bairro, status, statusColor };
+          });
+
+        setZonasStatus(zonas.length > 0 ? zonas : []);
 
       } catch (error) {
         console.error('Erro ao carregar dashboard:', error);
@@ -249,36 +283,36 @@ export const DashboardGestor = React.memo(({ isVisible }: { isVisible?: boolean 
       </div>
 
       {/* CARDS DE ESTATÍSTICAS FUNDAMENTAIS */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard 
-          title="Ocorrências / 24h" 
-          value={stats.ocorrenciasHoje} 
-          subValue="+12% em relação a ontem" 
-          icon={FileText} 
-          color="indigo" 
-        />
-        <StatCard 
-          title="Efetivo On-line" 
-          value={stats.efetivoAtivo} 
-          subValue="4 equipes em patrulhamento" 
-          icon={Users} 
-          color="emerald" 
-        />
-        <StatCard 
-          title="Frota Ativa" 
-          value={stats.viaturasEmUso} 
-          subValue="2 viaturas em manutenção" 
-          icon={Truck} 
-          color="amber" 
-        />
-        <StatCard 
-          title="Zonas Monitoradas" 
-          value={stats.bairrosAtendidos} 
-          subValue="100% do território coberto" 
-          icon={MapPin} 
-          color="slate" 
-        />
-      </div>
+       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+         <StatCard
+           title="Ocorrências / 24h"
+           value={stats.ocorrenciasHoje}
+           subValue="Registradas hoje"
+           icon={FileText}
+           color="indigo"
+         />
+         <StatCard
+           title="Efetivo Ativo"
+           value={stats.efetivoAtivo}
+           subValue="Membros ativos"
+           icon={Users}
+           color="emerald"
+         />
+         <StatCard
+           title="Frota em Patrulhamento"
+           value={stats.viaturasEmUso}
+           subValue="Viaturas em uso"
+           icon={Truck}
+           color="amber"
+         />
+         <StatCard
+           title="Bairros Atendidos"
+           value={stats.bairrosAtendidos}
+           subValue="Com ocorrências"
+           icon={MapPin}
+           color="slate"
+         />
+       </div>
 
       {/* SEÇÃO GRÁFICOS E ATIVIDADE */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -331,13 +365,20 @@ export const DashboardGestor = React.memo(({ isVisible }: { isVisible?: boolean 
             <h3 className="text-xl font-bold text-slate-900 mb-8 flex items-center">
                 <Clock className="w-5 h-5 mr-3 text-indigo-600" /> Atividade Recente
             </h3>
-            <div className="space-y-4 flex-1 overflow-auto pr-2 custom-scrollbar">
-                <ActivityItem title="Novo Registro: Maria da Penha" time="Há 5 minutos" type="ocorrencia" />
-                <ActivityItem title="Viatura V-04 iniciou patrulha" time="Há 12 minutos" type="viatura" />
-                <ActivityItem title="Equipe Delta: Troca de Turno" time="Há 45 minutos" type="equipe" />
-                <ActivityItem title="Alerta: Bateria Baixa Viatura V-10" time="Há 1 hora" type="alerta" />
-                <ActivityItem title="Relatório Gerado: Semanal" time="Há 2 horas" type="ocorrencia" />
-            </div>
+             <div className="space-y-4 flex-1 overflow-auto pr-2 custom-scrollbar">
+                 {atividadesRecentes.length > 0 ? (
+                   atividadesRecentes.map((atividade, index) => (
+                     <ActivityItem
+                       key={index}
+                       title={atividade.title}
+                       time={atividade.time}
+                       type={atividade.type}
+                     />
+                   ))
+                 ) : (
+                   <p className="text-sm text-slate-400 text-center py-4">Nenhuma atividade recente</p>
+                 )}
+             </div>
             <button className="mt-8 w-full py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-indigo-600 transition-colors">
                 Ver Todo Histórico
             </button>
@@ -388,36 +429,37 @@ export const DashboardGestor = React.memo(({ isVisible }: { isVisible?: boolean 
             </div>
           </div>
 
-          <div className="bg-indigo-600 rounded-[3rem] p-10 shadow-xl shadow-indigo-600/20 relative overflow-hidden group">
-            {/* Decoração Estilizada Background */}
-            <MapPin className="absolute right-[-20px] bottom-[-20px] w-64 h-64 text-white/5 -rotate-12 transition-transform duration-700 group-hover:rotate-0" />
-            
-            <div className="relative z-10 h-full flex flex-col justify-between">
-                <div>
-                    <h3 className="text-2xl font-black text-white mb-2 tracking-tight">Status Geral do Território</h3>
-                    <p className="text-white/70 font-medium">Situação de segurança por zona de patrulhamento.</p>
-                </div>
-                
-                <div className="space-y-4 mt-8">
-                    <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 flex items-center justify-between border border-white/10">
-                        <span className="text-white font-bold text-sm">Zona Norte</span>
-                        <span className="px-3 py-1 bg-emerald-500 text-white text-[10px] font-black uppercase rounded-full">Tranquilo</span>
-                    </div>
-                    <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 flex items-center justify-between border border-white/10">
-                        <span className="text-white font-bold text-sm">Centro Histórico</span>
-                        <span className="px-3 py-1 bg-amber-500 text-white text-[10px] font-black uppercase rounded-full">Atenção</span>
-                    </div>
-                    <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 flex items-center justify-between border border-white/10">
-                        <span className="text-white font-bold text-sm">Zona Leste</span>
-                        <span className="px-3 py-1 bg-emerald-500 text-white text-[10px] font-black uppercase rounded-full">Tranquilo</span>
-                    </div>
-                </div>
-                
-                <button className="mt-8 py-4 bg-white text-indigo-600 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center justify-center">
-                    Ver Mapa Completo <ChevronRight className="w-4 h-4 ml-2" />
-                </button>
-            </div>
-          </div>
+           <div className="bg-indigo-600 rounded-[3rem] p-10 shadow-xl shadow-indigo-600/20 relative overflow-hidden group">
+             {/* Decoração Estilizada Background */}
+             <MapPin className="absolute right-[-20px] bottom-[-20px] w-64 h-64 text-white/5 -rotate-12 transition-transform duration-700 group-hover:rotate-0" />
+
+             <div className="relative z-10 h-full flex flex-col justify-between">
+                 <div>
+                     <h3 className="text-2xl font-black text-white mb-2 tracking-tight">Status Geral do Território</h3>
+                     <p className="text-white/70 font-medium">Situação de segurança por zona de patrulhamento.</p>
+                 </div>
+
+                 <div className="space-y-4 mt-8">
+                     {zonasStatus.length > 0 ? (
+                       zonasStatus.map((zona, index) => (
+                         <div key={index} className="bg-white/10 backdrop-blur-md rounded-2xl p-4 flex items-center justify-between border border-white/10">
+                             <span className="text-white font-bold text-sm">{zona.bairro}</span>
+                             <span className={`px-3 py-1 text-white text-[10px] font-black uppercase rounded-full ${
+                               zona.statusColor === 'emerald' ? 'bg-emerald-500' :
+                               zona.statusColor === 'amber' ? 'bg-amber-500' : 'bg-rose-500'
+                             }`}>{zona.status}</span>
+                         </div>
+                       ))
+                     ) : (
+                       <p className="text-white/70 text-sm text-center py-4">Nenhum dado de bairro disponível</p>
+                     )}
+                 </div>
+
+                 <button className="mt-8 py-4 bg-white text-indigo-600 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center justify-center">
+                     Ver Mapa Completo <ChevronRight className="w-4 h-4 ml-2" />
+                 </button>
+             </div>
+           </div>
 
       </div>
 

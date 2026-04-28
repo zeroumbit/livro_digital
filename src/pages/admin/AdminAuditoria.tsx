@@ -24,22 +24,23 @@ export function AdminAuditoria() {
   const [logs, setLogs] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Como ainda não temos uma tabela de auditoria real (audit_log),
-  // vamos simular eventos baseados nas tabelas de usuários e instituições
-  // ou mostrar o esqueleto preparado para o motor de logs.
-  
   const fetchLogs = async () => {
     setIsLoading(true);
-    // Simulação de registros de auditoria interna
-    const mockLogs = [
-      { id: 1, type: 'AUTH', action: 'Login Realizado', user: 'Admin Mestre', target: 'SaaS Core', date: new Date().toISOString(), status: 'success', ip: '187.12.33.10' },
-      { id: 2, type: 'SECURITY', action: 'Aprovação de Tenant', user: 'Admin Mestre', target: 'GCM Canindé', date: new Date(Date.now() - 3600000).toISOString(), status: 'success', ip: '187.12.33.10' },
-      { id: 3, type: 'DATABASE', action: 'Update Plano', user: 'Admin Mestre', target: 'Plano Profissional', date: new Date(Date.now() - 86400000).toISOString(), status: 'success', ip: '187.12.33.10' },
-      { id: 4, type: 'AUTH', action: 'Tentativa Falha', user: 'Desconhecido', target: 'Login Panel', date: new Date(Date.now() - 90000000).toISOString(), status: 'warning', ip: '45.18.231.5' },
-    ];
-    
-    setLogs(mockLogs);
-    setIsLoading(false);
+    try {
+      const { data, error } = await supabase
+        .from('audit_log')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(100);
+
+      if (error) throw error;
+      setLogs(data || []);
+    } catch (error) {
+      console.error('Erro ao carregar logs:', error);
+      toast.error('Erro ao carregar logs de auditoria');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -107,36 +108,34 @@ export function AdminAuditoria() {
                         <tr key={log.id} className="hover:bg-slate-50/30 transition-colors group">
                             <td className="px-8 py-6">
                                 <div className="flex items-center">
-                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center mr-4 transition-transform group-hover:scale-110 ${
-                                        log.status === 'warning' ? 'bg-rose-50 text-rose-500' : 'bg-slate-50 text-slate-500'
-                                    }`}>
-                                        {log.type === 'AUTH' ? <Terminal className="w-5 h-5" /> : 
-                                         log.type === 'SECURITY' ? <Shield className="w-5 h-5" /> : <Activity className="w-5 h-5" />}
+                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center mr-4 transition-transform group-hover:scale-110 bg-slate-50 text-slate-500`}>
+                                        {log.acao === 'INSERT' ? <Terminal className="w-5 h-5" /> :
+                                         log.acao === 'DELETE' ? <Shield className="w-5 h-5" /> : <Activity className="w-5 h-5" />}
                                     </div>
                                     <div>
-                                        <p className={`font-bold text-sm ${log.status === 'warning' ? 'text-rose-600' : 'text-slate-900'}`}>{log.action}</p>
-                                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">{log.type}</p>
+                                        <p className="font-bold text-sm text-slate-900">{log.acao}</p>
+                                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">{log.tabela_afetada}</p>
                                     </div>
                                 </div>
                             </td>
                             <td className="px-8 py-6">
                                 <div className="flex items-center text-sm font-semibold text-slate-600">
                                     <User className="w-4 h-4 mr-2 text-slate-300" />
-                                    {log.user}
+                                    {log.usuario_id ? log.usuario_id.slice(0, 8) + '...' : '---'}
                                 </div>
                             </td>
                             <td className="px-8 py-6">
-                                <span className="text-[11px] font-black text-slate-700 bg-slate-100 px-2 py-1 rounded uppercase tracking-widest">{log.target}</span>
+                                <span className="text-[11px] font-black text-slate-700 bg-slate-100 px-2 py-1 rounded uppercase tracking-widest">{log.registro_id ? log.registro_id.slice(0, 8) + '...' : log.tabela_afetada}</span>
                             </td>
                             <td className="px-8 py-6">
                                 <p className="text-xs font-bold text-slate-500">
-                                    {new Date(log.date).toLocaleString('pt-BR')}
+                                    {new Date(log.created_at).toLocaleString('pt-BR')}
                                 </p>
                             </td>
                             <td className="px-8 py-6 text-right">
                                 <span className="text-[10px] font-black text-slate-400 flex items-center justify-end">
                                     <Globe className="w-3 h-3 mr-1.5" />
-                                    {log.ip}
+                                    {log.ip_address || '---'}
                                 </span>
                             </td>
                         </tr>
@@ -187,6 +186,3 @@ export function AdminAuditoria() {
   );
 }
 
-function CheckCircle2({ className }: { className: string }) {
-    return <Activity className={className} />; // Usando Activity como substituto rápido
-}
