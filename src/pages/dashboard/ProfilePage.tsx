@@ -30,7 +30,7 @@ export function ProfilePage() {
     { icon: Mail, label: 'Email Institucional', value: profile.email || 'Não informado' },
     { icon: Phone, label: 'Telefone para Contato', value: profile.telefone || 'Não informado' },
     { icon: Shield, label: 'Matrícula (RE)', value: profile.matricula || 'Pendente' },
-    { icon: Badge, label: 'Patente / Cargo', value: profile.patente || 'Pendente' },
+    { icon: Badge, label: 'Patente / Cargo', value: isSecretary && profile.perfil_acesso !== 'gestor' ? `SECRETARIO - ${profile.funcao_operacional || 'Cargo não informado'}` : (profile.patente || 'Pendente') },
     { icon: UserCheck, label: 'Função Operacional', value: profile.funcao_operacional || 'Pendente' },
     { icon: Activity, label: 'Status da Conta', value: profile.status === 'ativo' ? 'Ativo' : 'Inativo', color: profile.status === 'ativo' ? 'text-emerald-600' : 'text-slate-400' },
   ];
@@ -72,19 +72,14 @@ export function ProfilePage() {
           <div className="flex-1 text-center md:text-left space-y-4">
             <div>
               <div className="flex items-center justify-center md:justify-start gap-3 mb-2">
-                <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100">
-                  {profile.perfil_acesso === 'gestor' ? 'Comando Geral' : 'Efetivo Operacional'}
-                </span>
-                {isSecretary && (
-                  <span className="text-[10px] font-black text-amber-600 uppercase tracking-widest bg-amber-50 px-3 py-1 rounded-full border border-amber-200 animate-pulse">
-                    Comando Supremo
-                  </span>
-                )}
-                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest bg-slate-100 px-3 py-1 rounded-full border border-slate-200 flex items-center gap-1">
-                  <Clock className="w-3 h-3" />
-                  Desde {profile.created_at ? new Date(profile.created_at).toLocaleDateString() : '---'}
-                </span>
-              </div>
+                 <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100">
+                   {isSecretary ? fullName : (profile.perfil_acesso === 'gestor' ? 'Comando Geral' : 'Efetivo Operacional')}
+                 </span>
+                 <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest bg-slate-100 px-3 py-1 rounded-full border border-slate-200 flex items-center gap-1">
+                   <Clock className="w-3 h-3" />
+                   Desde {profile.created_at ? new Date(profile.created_at).toLocaleDateString() : '---'}
+                 </span>
+               </div>
               <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight leading-none">
                 {fullName}
               </h1>
@@ -93,11 +88,11 @@ export function ProfilePage() {
               </p>
             </div>
 
-            <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 text-sm text-slate-400 font-bold uppercase tracking-wider">
-               <span className="flex items-center gap-1.5"><Building2 className="w-4 h-4" /> {profile.instituicoes?.razao_social}</span>
+             <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 text-sm text-slate-400 font-bold uppercase tracking-wider">
+               <span className="flex items-center gap-1.5"><Building2 className="w-4 h-4" /> {institution?.razao_social || 'Não informado'}</span>
                <span className="w-1.5 h-1.5 rounded-full bg-slate-200"></span>
-               <span className="flex items-center gap-1.5"><MapPin className="w-4 h-4" /> {profile.instituicoes?.cidade}</span>
-            </div>
+               <span className="flex items-center gap-1.5"><MapPin className="w-4 h-4" /> {institution?.cidade || 'Não informado'}</span>
+             </div>
           </div>
 
           {/* Quick Stats Card */}
@@ -106,7 +101,9 @@ export function ProfilePage() {
              <div className="space-y-4">
                 <div className="flex justify-between items-center">
                    <span className="text-xs font-bold text-slate-500">Status</span>
-                   <span className="text-xs font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-lg uppercase">Ativo</span>
+                   <span className={`text-xs font-black px-2 py-0.5 rounded-lg uppercase ${profile.status === 'ativo' ? 'text-emerald-600 bg-emerald-50' : 'text-slate-400 bg-slate-100'}`}>
+                     {profile.status === 'ativo' ? 'Ativo' : 'Inativo'}
+                   </span>
                 </div>
                 <div className="flex justify-between items-center">
                    <span className="text-xs font-bold text-slate-500">Acesso</span>

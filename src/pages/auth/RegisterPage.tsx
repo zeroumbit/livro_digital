@@ -74,6 +74,8 @@ const passwordRegex = /^(?=.*[A-Z]).{8,}$/;
 const cnpjRegex = /^\d{2}\.\d{3}\.\d{3}\/\d{4}\-\d{2}$/;
 
 const step1Schema = z.object({
+  primeiro_nome: z.string().min(2, 'O primeiro nome deve ter pelo menos 2 caracteres.'),
+  sobrenome: z.string().min(2, 'O sobrenome deve ter pelo menos 2 caracteres.'),
   email: z.string().min(1, 'O e-mail é obrigatório.').email('Formato de e-mail inválido.'),
   password: z.string()
     .min(8, 'A senha deve ter no mínimo 8 caracteres.')
@@ -98,10 +100,18 @@ const step3Schema = z.object({
   estado: z.string().length(2, 'O estado deve ter 2 letras (Ex: CE).'),
 });
 
+const step4Schema = z.object({
+  gestorNomeCompleto: z.string().min(3, 'O nome completo deve ter pelo menos 3 caracteres.'),
+  gestorComoChamado: z.string().optional(),
+  gestorTelefone: z.string().min(10, 'Telefone inválido.'),
+  gestorEmail: z.string().min(1, 'O e-mail é obrigatório.').email('Formato de e-mail inválido.'),
+});
+
 const registrationSchema = z.object({
   ...step1Schema.shape,
   ...step2Schema.shape,
   ...step3Schema.shape,
+  ...step4Schema.shape,
 });
 
 type RegistrationFormData = z.infer<typeof registrationSchema>;
@@ -127,9 +137,10 @@ export function RegisterPage() {
   const navigate = useNavigate();
 
   const stepFields: Record<number, (keyof RegistrationFormData)[]> = {
-    1: ['email', 'password', 'acceptTerms', 'acceptPrivacy'],
+    1: ['primeiro_nome', 'sobrenome', 'email', 'password', 'acceptTerms', 'acceptPrivacy'],
     2: ['razaoSocial', 'cnpj', 'telefone'],
     3: ['cep', 'logradouro', 'numero', 'complemento', 'bairro', 'cidade', 'estado'],
+    4: ['gestorNomeCompleto', 'gestorComoChamado', 'gestorTelefone', 'gestorEmail'],
   };
 
   const { register, trigger, getValues, setValue, watch, setError, clearErrors, formState: { errors } } = useForm<RegistrationFormData>({
@@ -221,11 +232,12 @@ export function RegisterPage() {
         options: {
           data: {
             perfil_acesso: 'gestor',
+            primeiro_nome: data.primeiro_nome,
+            sobrenome: data.sobrenome,
+            funcao_operacional: 'SECRETÁRIO',
             razaoSocial: data.razaoSocial,
             cnpj: data.cnpj,
             telefone: data.telefone,
-            // Detalhes extras são passados no metadata para serem tratados
-            // por uma trigger ou backend depois, se necessário.
             endereco: {
               cep: data.cep,
               logradouro: data.logradouro,
@@ -294,7 +306,8 @@ export function RegisterPage() {
   const stepTitles: Record<number, { title: string, subtitle: string }> = {
     1: { title: "Dados de Acesso", subtitle: "Crie as credenciais para o perfil de Gestor." },
     2: { title: "Identificação", subtitle: "Informações oficiais da Guarda Municipal." },
-    3: { title: "Localização", subtitle: "Endereço da sede ou base operacional." }
+    3: { title: "Localização", subtitle: "Endereço da sede ou base operacional." },
+    4: { title: "Dados do Gestor", subtitle: "Informações do Secretário responsável." }
   };
 
   return (
@@ -316,13 +329,14 @@ export function RegisterPage() {
             </p>
           </div>
 
-          <div className="flex-1 space-y-0 mt-4 relative z-10 pl-2">
-            <TimelineStep step={1} currentStep={step} title="Credenciais" isLast={false} />
-            <TimelineStep step={2} currentStep={step} title="Instituição" isLast={false} />
-            <TimelineStep step={3} currentStep={step} title="Endereço Sede" isLast={false} />
-            <TimelineStep step={4} currentStep={step} title="Revisão" isLast={false} isGhost />
-            <TimelineStep step={5} currentStep={step} title="Conclusão" isLast={true} isGhost />
-          </div>
+            <div className="flex-1 space-y-0 mt-4 relative z-10 pl-2">
+             <TimelineStep step={1} currentStep={step} title="Credenciais" isLast={false} />
+             <TimelineStep step={2} currentStep={step} title="Instituição" isLast={false} />
+             <TimelineStep step={3} currentStep={step} title="Endereço Sede" isLast={false} />
+             <TimelineStep step={4} currentStep={step} title="Dados do Gestor" isLast={false} />
+             <TimelineStep step={5} currentStep={step} title="Revisão" isLast={false} isGhost />
+             <TimelineStep step={6} currentStep={step} title="Conclusão" isLast={true} isGhost />
+           </div>
         </div>
 
         {/* ================= RIGHT CONTENT ================= */}
@@ -349,6 +363,27 @@ export function RegisterPage() {
               {/* === ETAPA 1 === */}
               {step === 1 && (
                 <div className="space-y-7 animate-in fade-in duration-500">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div>
+                      <Label htmlFor="primeiro_nome">Primeiro Nome *</Label>
+                      <Input 
+                        id="primeiro_nome" placeholder="Ex: João"
+                        {...register('primeiro_nome')}
+                        className={errors.primeiro_nome ? 'border-rose-300 bg-rose-50/50 focus-visible:ring-rose-500/20' : ''}
+                      />
+                      <ErrorMessage error={errors.primeiro_nome?.message} />
+                    </div>
+                    <div>
+                      <Label htmlFor="sobrenome">Sobrenome *</Label>
+                      <Input 
+                        id="sobrenome" placeholder="Ex: Silva"
+                        {...register('sobrenome')}
+                        className={errors.sobrenome ? 'border-rose-300 bg-rose-50/50 focus-visible:ring-rose-500/20' : ''}
+                      />
+                      <ErrorMessage error={errors.sobrenome?.message} />
+                    </div>
+                  </div>
+
                   <div>
                     <Label htmlFor="email">E-mail Institucional *</Label>
                     <Input 

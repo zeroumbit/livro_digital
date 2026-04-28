@@ -7,15 +7,36 @@ interface UserProfile {
   instituicao_id: string | null;
   primeiro_nome: string;
   sobrenome: string;
+  email: string | null;
+  telefone: string | null;
+  matricula: string | null;
+  patente: string | null;
+  funcao_operacional: string | null;
   perfil_acesso: 'gcm' | 'gestor' | 'super_admin' | 'comando' | 'administrativo';
   status: string;
+  created_at: string | null;
 }
 
 interface Institution {
   id: string;
-  razao_social: string;
-  status_assinatura: string;
+  razao_social: string | null;
+  cnpj: string | null;
+  slug: string | null;
+  telefone: string | null;
+  cep: string | null;
+  logradouro: string | null;
+  numero: string | null;
+  complemento: string | null;
+  bairro: string | null;
+  cidade: string | null;
+  estado: string | null;
+  status_assinatura: string | null;
+  gestor_user_id: string | null;
+  plano_id: string | null;
   configuracoes_locais: any;
+  created_at: string | null;
+  updated_at: string | null;
+  planos: any | null;
 }
 
 interface AuthState {

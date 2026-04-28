@@ -65,6 +65,7 @@ export const fetchCNPJ = async (cnpj: string) => {
   if (cleanCNPJ.length !== 14) return null;
 
   try {
+    // Tenta BrasilAPI primeiro
     const response = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cleanCNPJ}`);
     if (response.ok) {
       const data = await response.json();
@@ -79,8 +80,29 @@ export const fetchCNPJ = async (cnpj: string) => {
         cep: data.cep
       };
     }
+    
+    // Fallback para ReceitaWS (com tratamento de erro silencioso)
+    if (response.status === 404) {
+      const receiptResponse = await fetch(`https://www.receitaws.com.br/v1/cnpj/${cleanCNPJ}`);
+      if (receiptResponse.ok) {
+        const data = await receiptResponse.json();
+        if (data.status === 'OK') {
+          return {
+            razao_social: data.nome,
+            nome_fantasia: data.fantasia,
+            rua: data.logradouro,
+            numero: data.numero,
+            bairro: data.bairro,
+            cidade: data.municipio,
+            estado: data.uf,
+            cep: data.cep
+          };
+        }
+      }
+    }
   } catch (error) {
-    console.error('Erro ao buscar CNPJ:', error);
+    // Erro silencioso - CNPJ não encontrado em nenhuma API
+    console.log('CNPJ não encontrado nas APIs disponíveis');
   }
   return null;
 };

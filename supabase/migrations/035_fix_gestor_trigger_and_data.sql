@@ -1,8 +1,8 @@
 -- ============================================================================
--- SCRIPT: CORREÇÃO E ROBUSTEZ DO GATILHO DE CADASTRO (DEBUG BUG 500)
--- Este script reforça o SECURITY DEFINER e previne erros comuns no signup.
+-- MIGRATION: Corrige trigger de cadastro e dados existentes do gestor
 -- ============================================================================
 
+-- 1. Recriar o trigger handle_new_user com as correções
 CREATE OR REPLACE FUNCTION public.handle_new_user() 
 RETURNS TRIGGER 
 LANGUAGE plpgsql 
@@ -59,7 +59,7 @@ BEGIN
         RETURNING id INTO v_instituicao_id;
     END IF;
 
-    -- 3. Criação do Perfil de Usuário
+    -- 3. Criação do Perfil de Usuário (CORRIGIDO)
     INSERT INTO public.usuarios (
         id,
         instituicao_id,
@@ -89,8 +89,22 @@ BEGIN
 
     RETURN NEW;
 EXCEPTION WHEN OTHERS THEN
-    -- Em caso de erro, permite o cadastro no Auth mas não quebra o sistema 500
-    -- Opcional: registrar o erro em uma tabela de log
     RETURN NEW;
 END;
 $$;
+
+-- 2. Corrigir dados existentes: gestores sem funcao_operacional
+UPDATE public.usuarios
+SET funcao_operacional = 'SECRETÁRIO'
+WHERE perfil_acesso = 'gestor'
+  AND (funcao_operacional IS NULL OR funcao_operacional = '');
+
+-- 3. Corrigir dados existentes: popular email e telefone na tabela usuarios
+-- (baseado no auth.users e nos metadados)
+UPDATE public.usuarios u
+SET 
+  email = COALESCE(u.email, au.email),
+  telefone = COALESCE(u.telefone, au.raw_user_meta_data->>'telefone')
+FROM auth.users au
+WHERE u.id = au.id
+  AND (u.email IS NULL OR u.telefone IS NULL);

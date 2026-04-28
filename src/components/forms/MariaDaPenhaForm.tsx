@@ -2,9 +2,27 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { 
-  Shield, ChevronRight, ChevronLeft, Trash2, Camera, Save, CheckCircle,
-  X, FileText, MapPin, Users, Image as ImageIcon, Loader2, AlertTriangle, AlertOctagon
+import {
+  Shield,
+  ChevronRight,
+  ChevronLeft,
+  Trash2,
+  Camera,
+  Save,
+  CheckCircle,
+  X,
+  FileText,
+  MapPin,
+  Users,
+  Image as ImageIcon,
+  Loader2,
+  AlertTriangle,
+  AlertOctagon,
+  MapPinCheck,
+  ClipboardList,
+  AlertCircle,
+  Zap,
+  ReceiptText
 } from 'lucide-react';
 
 import { supabase } from '@/lib/supabase';
@@ -344,80 +362,107 @@ export function MariaDaPenhaForm({ onClose, onSuccess, initialData }: Props) {
   ];
 
   return (
-    <div className="flex flex-col h-[100dvh] bg-slate-100">
-      <div className="bg-white px-6 py-4 border-b border-slate-200 flex items-center justify-between sticky top-0 z-20">
-        <div className="flex items-center gap-4">
-          <div className="w-10 h-10 bg-purple-600 text-white rounded-xl flex items-center justify-center">
-            <Shield className="w-5 h-5" />
+    <div className="flex flex-col h-screen bg-white">
+      <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex-shrink-0">
+        <div className="max-w-4xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 bg-indigo-600 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-600/20">
+              <Shield className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-3">
+                <h2 className="text-xl font-black text-slate-900">Registrar Ocorrência</h2>
+                <span className="px-3 py-1 bg-indigo-100 text-indigo-700 text-xs font-black uppercase tracking-widest rounded-lg">
+                  Maria da Penha
+                </span>
+              </div>
+              <div className="flex items-center gap-2 mt-1">
+                {[...Array(totalSteps)].map((_, i) => (
+                  <div 
+                    key={i + 1} 
+                    className={`h-1.5 rounded-full transition-all ${
+                      (i + 1) === step ? 'w-8 bg-indigo-600' : (i + 1) < step ? 'w-4 bg-indigo-300' : 'w-4 bg-slate-200'
+                    }`} 
+                  />
+                ))}
+                <span className="text-xs font-black text-slate-400 uppercase ml-2">Passo {step} de {totalSteps}</span>
+              </div>
+            </div>
           </div>
-          <div>
-            <h2 className="text-lg font-black text-slate-900 leading-tight">Maria da Penha</h2>
-            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">
-              Passo {step} de {totalSteps}
-            </p>
+          
+          <div className="flex items-center gap-4">
+            <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-all">
+              <X className="w-6 h-6" />
+            </button>
           </div>
         </div>
-        <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-full transition-colors">
-          <X className="w-5 h-5" />
-        </button>
       </div>
 
-      {/* Progress Bar */}
-      <div className="h-1.5 bg-slate-200 w-full">
-        <div 
-          className="h-full bg-purple-600 transition-all duration-500 ease-out"
-          style={{ width: `${(step / totalSteps) * 100}%` }}
-        />
-      </div>
-
-      <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-8">
-        <div className="max-w-4xl mx-auto pb-32">
+      <div className="flex-1 overflow-y-auto px-6 py-8">
+        <div className="max-w-4xl mx-auto">
           <form id="mdp-form">
             
-            {step === 1 && (
-              <div className="space-y-6 animate-in slide-in-from-right-4">
+             {step === 1 && (
+              <div className="space-y-8 animate-in slide-in-from-right-4 duration-300">
                 <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-slate-400">
+                     <MapPinCheck className="w-4 h-4" />
+                     <span className="text-xs font-black uppercase tracking-widest">Origem da Ocorrência</span>
+                  </div>
                   <h3 className="text-lg font-black text-slate-900">Origem da Ocorrência</h3>
-                  <p className="text-sm text-slate-500">Como esta ocorrência foi iniciada?</p>
+                  <p className="text-sm text-slate-500 font-medium">Como esta ocorrência foi iniciada?</p>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                  {origemOptions.map(opt => (
-                    <button
-                      key={opt.label}
-                      type="button"
-                      onClick={() => setValue('origem', opt.label)}
-                      className={`p-4 rounded-2xl border text-left transition-all ${
-                        watchOrigem === opt.label 
-                          ? 'bg-purple-600 border-purple-600 text-white shadow-lg' 
-                          : 'bg-white border-slate-200 hover:border-purple-300'
-                      }`}
-                    >
-                      <h4 className="font-bold text-sm mb-1">{opt.label}</h4>
-                      <p className={`text-xs ${watchOrigem === opt.label ? 'text-purple-100' : 'text-slate-500'}`}>{opt.desc}</p>
-                    </button>
-                  ))}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-4">
+                    <label className="text-xs font-black text-slate-700 uppercase tracking-widest">Selecione a Origem</label>
+                    <div className="space-y-2">
+                      {origemOptions.map(o => (
+                        <button
+                          key={o.label}
+                          type="button"
+                          onClick={() => setValue('origem', o.label)}
+                          className={`w-full p-4 rounded-2xl border text-left transition-all ${
+                            watchOrigem === o.label ? 'bg-indigo-600 border-indigo-600 text-white shadow-xl shadow-indigo-600/20' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                          }`}
+                        >
+                          <p className="text-sm font-black">{o.label}</p>
+                          <p className={`text-xs font-medium ${watchOrigem === o.label ? 'text-indigo-100' : 'text-slate-400'}`}>{o.desc}</p>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
 
-            {step === 2 && (
-              <div className="space-y-6 animate-in slide-in-from-right-4">
+             {step === 2 && (
+              <div className="space-y-8 animate-in slide-in-from-right-4 duration-300">
                 <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-slate-400">
+                     <ReceiptText className="w-4 h-4" />
+                     <span className="text-xs font-black uppercase tracking-widest">Descrição e Natureza</span>
+                  </div>
                   <h3 className="text-lg font-black text-slate-900">Descrição e Natureza</h3>
-                  <p className="text-sm text-slate-500">Relate os fatos e classifique a ocorrência.</p>
+                  <p className="text-sm text-slate-500 font-medium">Relate o fato e selecione os enquadramentos legais.</p>
                 </div>
-                <div className="space-y-4">
-                  <label className="text-xs font-black text-slate-700 uppercase">Relato do Fato</label>
-                  <textarea
+
+                <div className="space-y-2">
+                  <label className="text-xs font-black text-slate-700 uppercase tracking-widest">Descrição Geral do Fato</label>
+                  <textarea 
                     {...register('descricao')}
-                    rows={6}
+                    rows={8}
                     placeholder="Relate detalhadamente o ocorrido..."
-                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm"
+                    className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-[2rem] text-sm focus:ring-2 focus:ring-indigo-600/20 outline-none transition-all resize-none"
                   />
                   {errors.descricao && <p className="text-xs font-bold text-red-500">{errors.descricao.message}</p>}
+                  <div className="flex justify-between items-center px-2">
+                    <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">Autosave ativo (+10 caracteres)</p>
+                    <p className="text-xs font-black text-slate-500">{watch('descricao')?.length || 0} CARACTERE(S)</p>
+                  </div>
                 </div>
+
                 <div className="space-y-4">
-                  <label className="text-xs font-black text-slate-700 uppercase">Natureza(s) da Ocorrência</label>
+                  <label className="text-xs font-black text-slate-700 uppercase tracking-widest">Natureza(s) da Ocorrência</label>
                   <Controller
                     name="natureza"
                     control={control}
@@ -429,62 +474,72 @@ export function MariaDaPenhaForm({ onClose, onSuccess, initialData }: Props) {
                       />
                     )}
                   />
+                  {errors.natureza && <p className="text-xs font-bold text-red-500">{errors.natureza.message}</p>}
                 </div>
               </div>
             )}
 
-            {step === 3 && (
-              <div className="space-y-6 animate-in slide-in-from-right-4">
+             {step === 3 && (
+              <div className="space-y-8 animate-in slide-in-from-right-4 duration-300">
                 <div className="space-y-2">
                   <h3 className="text-lg font-black text-slate-900">Localização</h3>
-                  <p className="text-sm text-slate-500">Onde ocorreu o fato?</p>
+                  <p className="text-sm text-slate-500 font-medium">Onde a equipe atuou? Use o GPS para coordenadas exatas.</p>
                 </div>
-                
-                <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex gap-3">
-                  <AlertTriangle className="w-5 h-5 text-red-600 shrink-0" />
+
+                <div className="p-5 bg-red-50 border border-red-200 rounded-2xl flex gap-3">
+                  <AlertTriangle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
                   <div>
-                    <h4 className="text-sm font-bold text-red-800">Alerta de Segurança</h4>
-                    <p className="text-xs text-red-700">Ao salvar o endereço, garanta que o agressor não terá acesso a este registro.</p>
+                    <h4 className="text-xs font-black text-red-800 uppercase tracking-widest">Alerta de Segurança</h4>
+                    <p className="text-xs text-red-700 font-medium">Ao salvar o endereço, garanta que o agressor não terá acesso a este registro.</p>
                   </div>
                 </div>
 
-                <LocationInput
-                  rua={watch('rua')}
-                  bairro={watch('bairro')}
-                  cidade={watch('cidade')}
-                  estado={watch('estado')}
-                  numero={watch('numero')}
-                  cep={watch('cep')}
-                  referencia={watch('ponto_referencia')}
-                  coordenadas={watch('coordenadas')}
-                  onUpdate={(data) => {
-                    if (data.rua !== undefined) setValue('rua', data.rua);
-                    if (data.bairro !== undefined) setValue('bairro', data.bairro);
-                    if (data.cidade !== undefined) setValue('cidade', data.cidade);
-                    if (data.estado !== undefined) setValue('estado', data.estado);
-                    if (data.numero !== undefined) setValue('numero', data.numero);
-                    if (data.cep !== undefined) setValue('cep', data.cep);
-                    if (data.referencia !== undefined) setValue('ponto_referencia', data.referencia);
-                    if (data.coordenadas !== undefined) setValue('coordenadas', data.coordenadas);
+                <LocationInput 
+                  defaultValues={{
+                    rua: watch('rua'),
+                    bairro: watch('bairro'),
+                    cep: watch('cep'),
+                    numero: watch('numero'),
+                    coordenadas: watch('coordenadas')
+                  }}
+                  onLocationChange={(loc) => {
+                    setValue('rua', loc.rua);
+                    setValue('bairro', loc.bairro);
+                    setValue('cep', loc.cep);
+                    setValue('cidade', loc.cidade);
+                    setValue('estado', loc.estado);
+                    setValue('numero', loc.numero || '');
+                    setValue('coordenadas', loc.coordenadas || '');
                   }}
                 />
+                
+                <div className="space-y-2">
+                  <label className="text-xs font-black text-slate-700 uppercase tracking-widest">Ponto de Referência</label>
+                  <input 
+                    {...register('ponto_referencia')}
+                    placeholder="Próximo a, em frente ao, etc..."
+                    className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm outline-none"
+                  />
+                </div>
+
+                {(errors.rua || errors.bairro) && <p className="text-xs font-bold text-red-500">Endereço e bairro são campos obrigatórios.</p>}
               </div>
             )}
 
-            {step === 4 && (
-              <div className="space-y-6 animate-in slide-in-from-right-4">
+             {step === 4 && (
+              <div className="space-y-8 animate-in slide-in-from-right-4 duration-300">
                 <div className="space-y-2">
                   <h3 className="text-lg font-black text-slate-900">Dados da Vítima</h3>
-                  <p className="text-sm text-slate-500">Preencha as informações da vítima.</p>
+                  <p className="text-sm text-slate-500 font-medium">Preencha as informações da vítima.</p>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-700">Nome Completo *</label>
-                    <input {...register('vitima_nome')} className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl" />
+                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Nome Completo *</label>
+                    <input {...register('vitima_nome')} className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-indigo-600/10 outline-none" />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-700">Vínculo com o Agressor *</label>
-                    <select {...register('vitima_vinculo_agressor')} className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl">
+                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Vínculo com o Agressor *</label>
+                    <select {...register('vitima_vinculo_agressor')} className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-indigo-600/10 outline-none">
                       <option value="">Selecione...</option>
                       <option value="Cônjuge">Cônjuge</option>
                       <option value="Ex-cônjuge">Ex-cônjuge</option>
@@ -497,12 +552,12 @@ export function MariaDaPenhaForm({ onClose, onSuccess, initialData }: Props) {
                     </select>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-700">Telefone (Contato Seguro)</label>
-                    <input {...register('vitima_telefone')} className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl" />
+                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Telefone (Contato Seguro)</label>
+                    <input {...register('vitima_telefone')} className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-indigo-600/10 outline-none" />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-700">CPF</label>
-                    <input {...register('vitima_cpf')} className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl" />
+                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest">CPF</label>
+                    <input {...register('vitima_cpf')} className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-indigo-600/10 outline-none" />
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-700 flex items-center gap-2">
@@ -512,8 +567,8 @@ export function MariaDaPenhaForm({ onClose, onSuccess, initialData }: Props) {
                   {watch('vitima_tem_filhos') && (
                     <>
                       <div className="space-y-2">
-                        <label className="text-xs font-bold text-slate-700">Número de filhos</label>
-                        <input {...register('vitima_num_filhos')} type="number" className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl" />
+                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Número de filhos</label>
+                        <input {...register('vitima_num_filhos')} type="number" className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-indigo-600/10 outline-none" />
                       </div>
                       <div className="space-y-2">
                         <label className="text-xs font-bold text-slate-700 flex items-center gap-2">
@@ -541,20 +596,20 @@ export function MariaDaPenhaForm({ onClose, onSuccess, initialData }: Props) {
               </div>
             )}
 
-            {step === 5 && (
-              <div className="space-y-6 animate-in slide-in-from-right-4">
+             {step === 5 && (
+              <div className="space-y-8 animate-in slide-in-from-right-4 duration-300">
                 <div className="space-y-2">
                   <h3 className="text-lg font-black text-slate-900">Dados do Agressor</h3>
-                  <p className="text-sm text-slate-500">Preencha as informações do agressor.</p>
+                  <p className="text-sm text-slate-500 font-medium">Preencha as informações do agressor.</p>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-700">Nome Completo *</label>
-                    <input {...register('agressor_nome')} className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl" />
+                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Nome Completo *</label>
+                    <input {...register('agressor_nome')} className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-indigo-600/10 outline-none" />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-700">Possui arma de fogo? *</label>
-                    <select {...register('agressor_possui_arma')} className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl">
+                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Possui arma de fogo? *</label>
+                    <select {...register('agressor_possui_arma')} className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-indigo-600/10 outline-none">
                       <option value="">Selecione...</option>
                       <option value="Sim">Sim</option>
                       <option value="Não">Não</option>
@@ -563,13 +618,13 @@ export function MariaDaPenhaForm({ onClose, onSuccess, initialData }: Props) {
                   </div>
                   {watch('agressor_possui_arma') === 'Sim' && (
                     <div className="space-y-2 col-span-1 md:col-span-2">
-                      <label className="text-xs font-bold text-slate-700">Tipo de arma</label>
-                      <input {...register('agressor_tipo_arma')} className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl" />
+                      <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Tipo de arma</label>
+                      <input {...register('agressor_tipo_arma')} className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-indigo-600/10 outline-none" />
                     </div>
                   )}
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-700">Faz uso abusivo de álcool?</label>
-                    <select {...register('agressor_usa_alcool')} className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl">
+                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Faz uso abusivo de álcool?</label>
+                    <select {...register('agressor_usa_alcool')} className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-indigo-600/10 outline-none">
                       <option value="">Selecione...</option>
                       <option value="Sim">Sim</option>
                       <option value="Não">Não</option>
@@ -577,8 +632,8 @@ export function MariaDaPenhaForm({ onClose, onSuccess, initialData }: Props) {
                     </select>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-700">Faz uso de drogas?</label>
-                    <select {...register('agressor_usa_drogas')} className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl">
+                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Faz uso de drogas?</label>
+                    <select {...register('agressor_usa_drogas')} className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-indigo-600/10 outline-none">
                       <option value="">Selecione...</option>
                       <option value="Sim">Sim</option>
                       <option value="Não">Não</option>
@@ -586,8 +641,8 @@ export function MariaDaPenhaForm({ onClose, onSuccess, initialData }: Props) {
                     </select>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-700">Antecedentes Criminais?</label>
-                    <select {...register('agressor_antecedentes')} className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl">
+                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Antecedentes Criminais?</label>
+                    <select {...register('agressor_antecedentes')} className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-indigo-600/10 outline-none">
                       <option value="">Selecione...</option>
                       <option value="Sim">Sim</option>
                       <option value="Não">Não</option>
@@ -595,22 +650,22 @@ export function MariaDaPenhaForm({ onClose, onSuccess, initialData }: Props) {
                     </select>
                   </div>
                   <div className="space-y-2 col-span-1 md:col-span-2">
-                    <label className="text-xs font-bold text-slate-700">Descrição Física</label>
-                    <textarea {...register('agressor_descricao_fisica')} rows={2} className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl" />
+                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Descrição Física</label>
+                    <textarea {...register('agressor_descricao_fisica')} rows={2} className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-indigo-600/10 outline-none resize-none" />
                   </div>
                 </div>
               </div>
             )}
 
-            {step === 6 && (
-              <div className="space-y-6 animate-in slide-in-from-right-4">
+             {step === 6 && (
+              <div className="space-y-8 animate-in slide-in-from-right-4 duration-300">
                 <div className="space-y-2">
                   <h3 className="text-lg font-black text-slate-900">Fato da Violência</h3>
-                  <p className="text-sm text-slate-500">Detalhes da agressão.</p>
+                  <p className="text-sm text-slate-500 font-medium">Detalhes da agressão.</p>
                 </div>
                 
                 <div className="space-y-4">
-                  <label className="text-xs font-bold text-slate-700">Tipo(s) de Violência *</label>
+                  <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Tipo(s) de Violência *</label>
                   <Controller
                     name="tipos_violencia"
                     control={control}
@@ -625,7 +680,7 @@ export function MariaDaPenhaForm({ onClose, onSuccess, initialData }: Props) {
                               field.onChange(val.includes(tipo) ? val.filter(v => v !== tipo) : [...val, tipo]);
                             }}
                             className={`px-4 py-3 rounded-xl text-sm font-bold transition-all border ${
-                              (field.value || []).includes(tipo) ? 'bg-purple-600 border-purple-600 text-white' : 'bg-white border-slate-200'
+                              (field.value || []).includes(tipo) ? 'bg-indigo-600 border-indigo-600 text-white shadow-md' : 'bg-white border-slate-100 text-slate-500 hover:bg-slate-50'
                             }`}
                           >
                             {tipo}
@@ -636,22 +691,22 @@ export function MariaDaPenhaForm({ onClose, onSuccess, initialData }: Props) {
                   />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-700">É a primeira agressão? *</label>
-                    <select {...register('primeira_agressao')} className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl">
+                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest">É a primeira agressão? *</label>
+                    <select {...register('primeira_agressao')} className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-indigo-600/10 outline-none">
                       <option value="">Selecione...</option>
                       <option value="Sim">Sim</option>
                       <option value="Não">Não</option>
                     </select>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-700">Data da agressão atual *</label>
-                    <input type="date" {...register('data_ultima_agressao')} className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl" />
+                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Data da agressão atual *</label>
+                    <input type="date" {...register('data_ultima_agressao')} className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-indigo-600/10 outline-none" />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-700">Hora aproximada *</label>
-                    <select {...register('hora_agressao')} className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl">
+                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Hora aproximada *</label>
+                    <select {...register('hora_agressao')} className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-indigo-600/10 outline-none">
                       <option value="">Selecione...</option>
                       <option value="Madrugada">Madrugada</option>
                       <option value="Manhã">Manhã</option>
@@ -660,8 +715,8 @@ export function MariaDaPenhaForm({ onClose, onSuccess, initialData }: Props) {
                     </select>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-700">Local da agressão *</label>
-                    <select {...register('local_agressao')} className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl">
+                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Local da agressão *</label>
+                    <select {...register('local_agressao')} className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-indigo-600/10 outline-none">
                       <option value="">Selecione...</option>
                       <option value="Residência">Residência</option>
                       <option value="Via Pública">Via Pública</option>
@@ -670,8 +725,8 @@ export function MariaDaPenhaForm({ onClose, onSuccess, initialData }: Props) {
                     </select>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-700">Vítima buscou atendimento médico? *</label>
-                    <select {...register('vitima_buscou_atendimento')} className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl">
+                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Vítima buscou atendimento médico? *</label>
+                    <select {...register('vitima_buscou_atendimento')} className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-indigo-600/10 outline-none">
                       <option value="">Selecione...</option>
                       <option value="Sim">Sim</option>
                       <option value="Não">Não</option>
@@ -679,16 +734,16 @@ export function MariaDaPenhaForm({ onClose, onSuccess, initialData }: Props) {
                     </select>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-700">Há lesões visíveis? *</label>
-                    <select {...register('lesoes_visiveis')} className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl">
+                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Há lesões visíveis? *</label>
+                    <select {...register('lesoes_visiveis')} className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-indigo-600/10 outline-none">
                       <option value="">Selecione...</option>
                       <option value="Sim">Sim</option>
                       <option value="Não">Não</option>
                     </select>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-700">Há testemunhas? *</label>
-                    <select {...register('ha_testemunhas')} className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl">
+                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Há testemunhas? *</label>
+                    <select {...register('ha_testemunhas')} className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-indigo-600/10 outline-none">
                       <option value="">Selecione...</option>
                       <option value="Sim">Sim</option>
                       <option value="Não">Não</option>
@@ -698,27 +753,31 @@ export function MariaDaPenhaForm({ onClose, onSuccess, initialData }: Props) {
               </div>
             )}
 
-            {step === 7 && (
-              <div className="space-y-6 animate-in slide-in-from-right-4">
+             {step === 7 && (
+              <div className="space-y-8 animate-in slide-in-from-right-4 duration-300">
                 <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-slate-400">
+                     <ClipboardList className="w-4 h-4" />
+                     <span className="text-xs font-black uppercase tracking-widest">Avaliação de Risco</span>
+                  </div>
                   <h3 className="text-lg font-black text-slate-900">Avaliação de Risco (FONAR)</h3>
-                  <p className="text-sm text-slate-500">Responda SIM ou NÃO (Padrão é Não).</p>
+                  <p className="text-sm text-slate-500 font-medium">Responda SIM ou NÃO (Padrão é Não).</p>
                 </div>
                 
-                <div className={`p-4 rounded-xl border flex items-center justify-between ${
+                <div className={`p-5 rounded-2xl border flex items-center justify-between ${
                   nivel_risco === 'Elevado' ? 'bg-red-50 border-red-200 text-red-800' :
                   nivel_risco === 'Médio' ? 'bg-amber-50 border-amber-200 text-amber-800' :
                   'bg-blue-50 border-blue-200 text-blue-800'
                 }`}>
                   <div className="flex items-center gap-2">
                     <AlertOctagon className="w-5 h-5" />
-                    <span className="font-black uppercase">Nível de Risco Calculado:</span>
+                    <span className="font-black uppercase text-sm">Nível de Risco Calculado:</span>
                   </div>
                   <span className="font-black text-lg">{nivel_risco}</span>
                 </div>
 
                 <div className="space-y-4">
-                  <h4 className="font-bold text-sm text-slate-800 border-b pb-2">Parte I - Histórico de Violência</h4>
+                  <h4 className="font-bold text-sm text-slate-800 border-b border-slate-200 pb-2">Parte I - Histórico de Violência</h4>
                   {[
                     { key: 'fonar_p1_q1', text: 'O agressor já praticou outras violências contra você antes?' },
                     { key: 'fonar_p1_q2', text: 'A violência aumentou de frequência ou gravidade nos últimos 12 meses?' },
@@ -729,13 +788,13 @@ export function MariaDaPenhaForm({ onClose, onSuccess, initialData }: Props) {
                     { key: 'fonar_p1_q7', text: 'O agressor já espancou você durante gravidez?' },
                     { key: 'fonar_p1_q8', text: 'O agressor já fez ameaça de morte envolvendo filhos?' },
                   ].map(q => (
-                    <label key={q.key} className="flex items-center justify-between bg-white p-3 rounded-lg border border-slate-200 cursor-pointer hover:border-purple-300">
+                    <label key={q.key} className="flex items-center justify-between bg-white p-4 rounded-xl border border-slate-200 cursor-pointer hover:border-indigo-300 transition-all">
                       <span className="text-sm font-medium">{q.text}</span>
-                      <input type="checkbox" {...register(q.key as any)} className="w-5 h-5 accent-purple-600" />
+                      <input type="checkbox" {...register(q.key as any)} className="w-5 h-5 accent-indigo-600" />
                     </label>
                   ))}
 
-                  <h4 className="font-bold text-sm text-slate-800 border-b pb-2 mt-6">Parte II - Comportamento</h4>
+                  <h4 className="font-bold text-sm text-slate-800 border-b border-slate-200 pb-2 mt-6">Parte II - Comportamento</h4>
                   {[
                     { key: 'fonar_p2_q1', text: 'O agressor faz uso abusivo de álcool?' },
                     { key: 'fonar_p2_q2', text: 'O agressor faz uso de drogas ilícitas?' },
@@ -743,13 +802,13 @@ export function MariaDaPenhaForm({ onClose, onSuccess, initialData }: Props) {
                     { key: 'fonar_p2_q4', text: 'O agressor já ameaçou suicídio ou tentou suicídio?' },
                     { key: 'fonar_p2_q5', text: 'O agressor monitora seus passos, mensagens ou redes sociais?' },
                   ].map(q => (
-                    <label key={q.key} className="flex items-center justify-between bg-white p-3 rounded-lg border border-slate-200 cursor-pointer hover:border-purple-300">
+                    <label key={q.key} className="flex items-center justify-between bg-white p-4 rounded-xl border border-slate-200 cursor-pointer hover:border-indigo-300 transition-all">
                       <span className="text-sm font-medium">{q.text}</span>
-                      <input type="checkbox" {...register(q.key as any)} className="w-5 h-5 accent-purple-600" />
+                      <input type="checkbox" {...register(q.key as any)} className="w-5 h-5 accent-indigo-600" />
                     </label>
                   ))}
 
-                  <h4 className="font-bold text-sm text-slate-800 border-b pb-2 mt-6">Parte III - Situação da Vítima</h4>
+                  <h4 className="font-bold text-sm text-slate-800 border-b border-slate-200 pb-2 mt-6">Parte III - Situação da Vítima</h4>
                   {[
                     { key: 'fonar_p3_q1', text: 'Você tem onde morar com segurança imediata?' },
                     { key: 'fonar_p3_q2', text: 'Você tem autonomia financeira (renda própria)?' },
@@ -757,23 +816,24 @@ export function MariaDaPenhaForm({ onClose, onSuccess, initialData }: Props) {
                     { key: 'fonar_p3_q4', text: 'Você está grávida no momento?' },
                     { key: 'fonar_p3_q5', text: 'Tem algum familiar ou amigo que possa acolhê-la?' },
                   ].map(q => (
-                    <label key={q.key} className="flex items-center justify-between bg-white p-3 rounded-lg border border-slate-200 cursor-pointer hover:border-purple-300">
+                    <label key={q.key} className="flex items-center justify-between bg-white p-4 rounded-xl border border-slate-200 cursor-pointer hover:border-indigo-300 transition-all">
                       <span className="text-sm font-medium">{q.text}</span>
-                      <input type="checkbox" {...register(q.key as any)} className="w-5 h-5 accent-purple-600" />
+                      <input type="checkbox" {...register(q.key as any)} className="w-5 h-5 accent-indigo-600" />
                     </label>
                   ))}
                 </div>
               </div>
             )}
 
-            {step === 8 && (
-              <div className="space-y-6 animate-in slide-in-from-right-4">
+             {step === 8 && (
+              <div className="space-y-8 animate-in slide-in-from-right-4 duration-300">
                 <div className="space-y-2">
                   <h3 className="text-lg font-black text-slate-900">Medidas Protetivas</h3>
+                  <p className="text-sm text-slate-500 font-medium">Solicite medidas de proteção conforme a Lei Maria da Penha.</p>
                 </div>
                 <div className="space-y-4">
-                  <label className="text-xs font-bold text-slate-700">Deseja solicitar medidas protetivas? *</label>
-                  <select {...register('deseja_medidas_protetivas')} className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl">
+                  <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Deseja solicitar medidas protetivas? *</label>
+                  <select {...register('deseja_medidas_protetivas')} className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-indigo-600/10 outline-none">
                     <option value="">Selecione...</option>
                     <option value="Sim">Sim</option>
                     <option value="Não">Não</option>
@@ -781,7 +841,7 @@ export function MariaDaPenhaForm({ onClose, onSuccess, initialData }: Props) {
                 </div>
                 {watch('deseja_medidas_protetivas') === 'Sim' && (
                   <div className="space-y-4">
-                    <label className="text-xs font-bold text-slate-700">Quais medidas? (Múltipla escolha)</label>
+                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Quais medidas? (Múltipla escolha)</label>
                     <Controller
                       name="medidas_solicitadas"
                       control={control}
@@ -803,7 +863,7 @@ export function MariaDaPenhaForm({ onClose, onSuccess, initialData }: Props) {
                                 field.onChange(val.includes(m) ? val.filter(v => v !== m) : [...val, m]);
                               }}
                               className={`px-4 py-3 rounded-xl text-sm font-bold text-left transition-all border ${
-                                (field.value || []).includes(m) ? 'bg-purple-600 border-purple-600 text-white' : 'bg-white border-slate-200'
+                                (field.value || []).includes(m) ? 'bg-indigo-600 border-indigo-600 text-white shadow-md' : 'bg-white border-slate-100 text-slate-500 hover:bg-slate-50'
                               }`}
                             >
                               {m}
@@ -814,23 +874,24 @@ export function MariaDaPenhaForm({ onClose, onSuccess, initialData }: Props) {
                     />
                   </div>
                 )}
-                <div className="space-y-4 pt-4 border-t border-slate-200">
+                <div className="space-y-4 pt-4 border-t border-slate-100">
                   <label className="flex items-center gap-2 font-bold text-sm">
                     <input type="checkbox" {...register('risco_iminente_morte')} className="w-5 h-5 accent-red-600" />
                     Vítima corre risco iminente de morte?
                   </label>
                   <label className="flex items-center gap-2 font-bold text-sm">
-                    <input type="checkbox" {...register('necessita_acolhimento_emergencial')} className="w-5 h-5 accent-purple-600" />
+                    <input type="checkbox" {...register('necessita_acolhimento_emergencial')} className="w-5 h-5 accent-indigo-600" />
                     Necessita acolhimento emergencial?
                   </label>
                 </div>
               </div>
             )}
 
-            {step === 9 && (
-              <div className="space-y-6 animate-in slide-in-from-right-4">
+             {step === 9 && (
+              <div className="space-y-8 animate-in slide-in-from-right-4 duration-300">
                 <div className="space-y-2">
                   <h3 className="text-lg font-black text-slate-900">Encaminhamentos Realizados</h3>
+                  <p className="text-sm text-slate-500 font-medium">Selecione os encaminhamentos realizados para a vítima.</p>
                 </div>
                 <Controller
                   name="encaminhamentos_realizados"
@@ -856,7 +917,7 @@ export function MariaDaPenhaForm({ onClose, onSuccess, initialData }: Props) {
                             field.onChange(val.includes(enc) ? val.filter(v => v !== enc) : [...val, enc]);
                           }}
                           className={`px-4 py-3 rounded-xl text-sm font-bold text-left transition-all border ${
-                            (field.value || []).includes(enc) ? 'bg-purple-600 border-purple-600 text-white' : 'bg-white border-slate-200'
+                            (field.value || []).includes(enc) ? 'bg-indigo-600 border-indigo-600 text-white shadow-md' : 'bg-white border-slate-100 text-slate-500 hover:bg-slate-50'
                           }`}
                         >
                           {enc}
@@ -868,29 +929,36 @@ export function MariaDaPenhaForm({ onClose, onSuccess, initialData }: Props) {
               </div>
             )}
 
-            {step === 10 && (
-              <div className="space-y-6 animate-in slide-in-from-right-4">
+             {step === 10 && (
+              <div className="space-y-8 animate-in slide-in-from-right-4 duration-300">
                 <div className="space-y-2">
                   <h3 className="text-lg font-black text-slate-900">Anexos e Fotos</h3>
-                  <p className="text-sm text-slate-500">Insira fotos para compor o registro.</p>
+                  <p className="text-sm text-slate-500 font-medium">Insira até 10 fotos comprovando os fatos.</p>
                 </div>
 
-                <div className="p-4 bg-purple-50 border border-purple-200 rounded-xl">
-                  <h4 className="font-bold text-purple-800 text-sm mb-2">Recomendações:</h4>
-                  <ul className="text-xs text-purple-700 list-disc pl-4 space-y-1">
-                    <li>Foto da vítima com lesões (mediante consentimento explícito)</li>
-                    <li>Foto do local da agressão (desordem, objetos quebrados)</li>
-                    <li>Foto de armas ou objetos usados na agressão</li>
-                    <li>Foto de mensagens de ameaça (print da tela)</li>
-                  </ul>
-                  <p className="text-xs font-black text-red-600 mt-2 flex items-center gap-1">
+                <div className="p-5 bg-purple-50 border border-purple-200 rounded-2xl">
+                  <p className="text-xs font-black text-purple-700 uppercase tracking-widest mb-3">Recomendações de Foto para Maria da Penha</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {[
+                      { icon: '👩', text: 'Foto da vítima com lesões (mediante consentimento)' },
+                      { icon: '🏠', text: 'Foto do local da agressão (desordem, objetos quebrados)' },
+                      { icon: '🔪', text: 'Foto de armas ou objetos usados na agressão' },
+                      { icon: '📱', text: 'Foto de mensagens de ameaça (print da tela)' },
+                    ].map(rec => (
+                      <div key={rec.text} className="flex items-center gap-2 text-xs font-bold text-purple-800">
+                        <span className="text-lg">{rec.icon}</span>
+                        <span>{rec.text}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-xs font-black text-red-600 mt-3 flex items-center gap-1">
                     <AlertTriangle className="w-4 h-4" /> NÃO FOTOGRAFE SEM CONSENTIMENTO!
                   </p>
                 </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                   {photos.map((photo, index) => (
-                    <div key={index} className="relative aspect-square rounded-2xl overflow-hidden border border-slate-200">
+                    <div key={index} className="relative aspect-square rounded-[2rem] overflow-hidden border border-slate-200 shadow-sm group">
                       <img src={photo.preview} alt={`Preview ${index}`} className="w-full h-full object-cover" />
                       <button 
                         type="button"
@@ -903,7 +971,7 @@ export function MariaDaPenhaForm({ onClose, onSuccess, initialData }: Props) {
                   ))}
                   
                   {photos.length < 10 && (
-                    <label className="aspect-square bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center gap-2 hover:bg-purple-50 hover:border-purple-200 cursor-pointer">
+                    <label className="aspect-square bg-slate-50 border-2 border-dashed border-slate-200 rounded-[2rem] flex flex-col items-center justify-center gap-2 hover:bg-indigo-50 hover:border-indigo-200 transition-all cursor-pointer group">
                       <input 
                         type="file" 
                         multiple 
@@ -918,10 +986,22 @@ export function MariaDaPenhaForm({ onClose, onSuccess, initialData }: Props) {
                           setPhotos(prev => [...prev, ...newPhotos].slice(0, 10));
                         }}
                       />
-                      <Camera className="w-8 h-8 text-slate-400" />
-                      <span className="text-xs font-bold text-slate-400">Adicionar</span>
+                      <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
+                        <Camera className="w-6 h-6 text-indigo-600" />
+                      </div>
+                      <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Adicionar Foto</span>
                     </label>
                   )}
+                </div>
+
+                <div className="p-8 bg-amber-50 border border-amber-100 rounded-[2.5rem] flex gap-6">
+                  <div className="w-14 h-14 bg-amber-100 text-amber-600 rounded-3xl flex items-center justify-center shrink-0">
+                    <AlertCircle className="w-7 h-7" />
+                  </div>
+                  <div>
+                    <h4 className="text-lg font-black text-amber-900">Finalização Irreversível</h4>
+                    <p className="text-sm text-amber-700 font-medium mt-1 leading-relaxed">Ao registrar a ocorrência como <strong>FINALIZADA</strong>, todos os campos acima se tornam imutáveis para garantir a integridade dos logs. Futuros complementos deverão ser feitos via <strong>Módulo de Anotações</strong>.</p>
+                  </div>
                 </div>
               </div>
             )}
@@ -929,56 +1009,46 @@ export function MariaDaPenhaForm({ onClose, onSuccess, initialData }: Props) {
         </div>
       </div>
 
-      <div className="bg-white border-t border-slate-200 p-4 fixed bottom-0 w-full z-20">
+      <div className="px-6 py-5 border-t border-slate-100 bg-slate-50/50 flex-shrink-0">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <div className="flex gap-2">
-            <button 
-              type="button"
-              onClick={onClose}
-              className="px-6 py-4 bg-slate-100 text-slate-600 rounded-2xl font-black text-sm hover:bg-slate-200"
-            >
-              Cancelar
-            </button>
-            <button 
-              type="button"
-              onClick={handleSubmit((data) => onSubmit(data, false))}
-              disabled={isSubmitting || !watchOrigem}
-              className="px-6 py-4 bg-slate-100 text-slate-600 rounded-2xl font-black text-sm hover:bg-slate-200 flex items-center disabled:opacity-50"
-            >
-              <Save className="w-5 h-5 mr-2" /> Salvar Rascunho
-            </button>
-          </div>
-          
-          <div className="flex gap-2">
-            {step > 1 && (
-              <button 
-                type="button"
-                onClick={() => setStep(s => s - 1)}
-                className="px-6 py-4 bg-slate-100 text-slate-600 rounded-2xl font-black text-sm hover:bg-slate-200 flex items-center"
-              >
-                <ChevronLeft className="w-5 h-5 mr-2" /> Voltar
-              </button>
-            )}
-            
+          <button 
+            onClick={() => step > 1 ? setStep(s => s - 1) : onClose()}
+            className="px-8 py-3 text-slate-600 font-black text-xs uppercase tracking-widest hover:bg-slate-200 rounded-2xl transition-all flex items-center gap-2"
+          >
+            <ChevronLeft className="w-4 h-4" /> {step > 1 ? 'Voltar' : 'Cancelar'}
+          </button>
+
+          <div className="flex items-center gap-4">
             {step < totalSteps ? (
               <button 
-                type="button"
                 onClick={() => setStep(s => s + 1)}
                 disabled={!isStepValid()}
-                className="px-8 py-4 bg-purple-600 text-white rounded-2xl font-black text-sm hover:bg-purple-700 flex items-center disabled:opacity-50 disabled:cursor-not-allowed shadow-xl shadow-purple-600/20"
+                className={`px-10 py-3 font-black text-xs uppercase tracking-widest rounded-2xl transition-all flex items-center gap-2 active:scale-95 ${
+                  isStepValid() 
+                    ? 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-xl shadow-indigo-600/20' 
+                    : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                }`}
               >
-                Avançar <ChevronRight className="w-5 h-5 ml-2" />
+                Próximo Passo <ChevronRight className="w-4 h-4" />
               </button>
             ) : (
-              <button 
-                type="button"
-                onClick={handleSubmit((data) => onSubmit(data, true))}
-                disabled={isSubmitting || !isStepValid()}
-                className="px-8 py-4 bg-emerald-500 text-white rounded-2xl font-black text-sm hover:bg-emerald-600 flex items-center disabled:opacity-50 shadow-xl shadow-emerald-500/20"
-              >
-                {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <CheckCircle className="w-5 h-5 mr-2" />}
-                Finalizar Ocorrência
-              </button>
+              <>
+                <button 
+                  onClick={handleSubmit((data) => onSubmit(data, false))}
+                  disabled={isSubmitting}
+                  className="px-8 py-3 bg-white border border-slate-200 text-slate-600 font-black text-xs uppercase tracking-widest rounded-2xl hover:bg-slate-50 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Save className="w-4 h-4 mr-2 inline" /> Salvar Rascunho
+                </button>
+                <button 
+                  onClick={handleSubmit((data) => onSubmit(data, true))}
+                  disabled={isSubmitting || !isStepValid()}
+                  className="px-12 py-3 bg-emerald-600 text-white font-black text-xs uppercase tracking-widest rounded-2xl hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-600/20 flex items-center gap-3 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle className="w-5 h-5" />}
+                  Registrar Ocorrência
+                </button>
+              </>
             )}
           </div>
         </div>
