@@ -297,9 +297,9 @@ export const DashboardGestor = React.memo(({ isVisible }: { isVisible?: boolean 
           </div>
           
           <div className="h-[300px] w-full">
-            {isVisible && (
+            {isVisible && chartData.length > 0 && (
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={CHART_DATA}>
+                <AreaChart data={chartData}>
                   <defs>
                     <linearGradient id="colorVal" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#4F46E5" stopOpacity={0.1}/>
@@ -351,38 +351,40 @@ export const DashboardGestor = React.memo(({ isVisible }: { isVisible?: boolean 
           <div className="bg-white rounded-[3rem] p-10 border border-slate-100 shadow-sm">
             <h3 className="text-xl font-bold text-slate-900 mb-8">Naturezas Frequentes</h3>
             <div className="flex flex-col md:flex-row items-center gap-10">
-                <div className="w-full md:w-1/2 h-[200px]">
-                    {isVisible && (
-                      <ResponsiveContainer width="100%" height="100%">
-                          <PieChart>
-                          <Pie
-                              data={PIE_DATA}
-                              innerRadius={60}
-                              outerRadius={80}
-                              paddingAngle={5}
-                              dataKey="value"
-                          >
-                              {PIE_DATA.map((_entry, index) => (
-                              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                              ))}
-                          </Pie>
-                          <Tooltip />
-                          </PieChart>
-                      </ResponsiveContainer>
-                    )}
-                </div>
+                 <div className="w-full md:w-1/2 h-[200px]">
+                     {isVisible && pieData.length > 0 && (
+                       <ResponsiveContainer width="100%" height="100%">
+                           <PieChart>
+                           <Pie
+                               data={pieData}
+                               innerRadius={60}
+                               outerRadius={80}
+                               paddingAngle={5}
+                               dataKey="value"
+                           >
+                               {pieData.map((_entry, index) => (
+                               <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                               ))}
+                           </Pie>
+                           <Tooltip />
+                           </PieChart>
+                       </ResponsiveContainer>
+                     )}
+                 </div>
 
-                <div className="w-full md:w-1/2 space-y-4">
-                    {PIE_DATA.map((d, i) => (
-                        <div key={d.name} className="flex items-center justify-between text-sm">
-                            <div className="flex items-center">
-                                <div className="w-3 h-3 rounded-full mr-3" style={{backgroundColor: COLORS[i]}}></div>
-                                <span className="font-bold text-slate-600">{d.name}</span>
-                            </div>
-                            <span className="font-black text-slate-900">{(d.value / 1200 * 100).toFixed(0)}%</span>
-                        </div>
-                    ))}
-                </div>
+                 <div className="w-full md:w-1/2 space-y-4">
+                     {pieData.map((d, i) => {
+                         const total = pieData.reduce((sum, item) => sum + item.value, 0);
+                         return (
+                         <div key={d.name} className="flex items-center justify-between text-sm">
+                             <div className="flex items-center">
+                                 <div className="w-3 h-3 rounded-full mr-3" style={{backgroundColor: COLORS[i % COLORS.length]}}></div>
+                                 <span className="font-bold text-slate-600">{d.name}</span>
+                             </div>
+                             <span className="font-black text-slate-900">{total > 0 ? ((d.value / total) * 100).toFixed(0) : 0}%</span>
+                         </div>
+                     )})}
+                 </div>
             </div>
           </div>
 
