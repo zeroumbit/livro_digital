@@ -32,6 +32,11 @@ interface Institution {
   estado: string | null;
   status_assinatura: string | null;
   gestor_user_id: string | null;
+  // Dados do gestor (secretário)
+  gestor_nome_completo: string | null;
+  gestor_como_chamado: string | null;
+  gestor_telefone: string | null;
+  gestor_email: string | null;
   plano_id: string | null;
   configuracoes_locais: any;
   created_at: string | null;

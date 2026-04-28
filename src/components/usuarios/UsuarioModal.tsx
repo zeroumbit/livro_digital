@@ -1,16 +1,26 @@
-import React, { useState } from 'react';
-import { X, Mail, UserPlus, Loader2, Shield, Phone, ChevronDown } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Mail, UserPlus, Loader2, Shield, Phone, ChevronDown, Badge, User } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
+import { usePatentes } from '@/hooks/useUsuarios';
 
-interface InviteMemberModalProps {
+interface UsuarioModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onInvite: (data: { email: string; primeiro_nome: string; sobrenome: string; telefone: string; perfil_acesso: string; patente: string }) => void;
+  onSubmit: (data: {
+    email: string;
+    primeiro_nome: string;
+    sobrenome: string;
+    telefone: string;
+    perfil_acesso: string;
+    patente: string;
+    matricula: string;
+    funcao_operacional: string;
+  }) => void;
+  usuario?: any | null;
   isLoading?: boolean;
 }
 
 const ACCESS_PROFILES = [
-  { value: 'gestor', label: 'Gestor' },
   { value: 'comandante_geral', label: 'Comandante Geral' },
   { value: 'chefe_equipe', label: 'Chefe de Equipe' },
   { value: 'gcm', label: 'GCM' },
@@ -19,10 +29,9 @@ const ACCESS_PROFILES = [
   { value: 'administrativo', label: 'Administrativo' },
 ];
 
-import { usePatentes } from '@/hooks/useMembers';
-
-export function InviteMemberModal({ isOpen, onClose, onInvite, isLoading = false }: InviteMemberModalProps) {
+export function UsuarioModal({ isOpen, onClose, onSubmit, usuario, isLoading = false }: UsuarioModalProps) {
   const { data: patentes, isLoading: loadingPatentes } = usePatentes();
+  
   const [formData, setFormData] = useState({
     email: '',
     primeiro_nome: '',
@@ -30,9 +39,38 @@ export function InviteMemberModal({ isOpen, onClose, onInvite, isLoading = false
     telefone: '',
     perfil_acesso: 'gcm',
     patente: '',
+    matricula: '',
+    funcao_operacional: '',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (usuario) {
+      setFormData({
+        email: usuario.email || '',
+        primeiro_nome: usuario.primeiro_nome || '',
+        sobrenome: usuario.sobrenome || '',
+        telefone: usuario.telefone || '',
+        perfil_acesso: usuario.perfil_acesso || 'gcm',
+        patente: usuario.patente || '',
+        matricula: usuario.matricula || '',
+        funcao_operacional: usuario.funcao_operacional || '',
+      });
+    } else {
+      setFormData({
+        email: '',
+        primeiro_nome: '',
+        sobrenome: '',
+        telefone: '',
+        perfil_acesso: 'gcm',
+        patente: '',
+        matricula: '',
+        funcao_operacional: '',
+      });
+    }
+    setErrors({});
+  }, [usuario, isOpen]);
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
@@ -57,19 +95,11 @@ export function InviteMemberModal({ isOpen, onClose, onInvite, isLoading = false
 
   const handleSubmit = () => {
     if (validate()) {
-      onInvite(formData);
+      onSubmit(formData);
     }
   };
 
   const handleClose = () => {
-    setFormData({
-      email: '',
-      primeiro_nome: '',
-      sobrenome: '',
-      telefone: '',
-      perfil_acesso: 'gcm',
-      patente: '',
-    });
     setErrors({});
     onClose();
   };
@@ -78,8 +108,8 @@ export function InviteMemberModal({ isOpen, onClose, onInvite, isLoading = false
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md animate-in fade-in duration-300">
-      <div className="w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl border border-slate-100 overflow-hidden animate-in zoom-in-95 duration-300">
-          
+      <div className="w-full max-w-lg bg-white rounded-[2.5rem] shadow-2xl border border-slate-100 overflow-hidden animate-in zoom-in-95 duration-300">
+        
         <div className="relative p-8 pb-6">
           <button
             onClick={handleClose}
@@ -90,30 +120,18 @@ export function InviteMemberModal({ isOpen, onClose, onInvite, isLoading = false
           </button>
 
           <div className="w-16 h-16 rounded-2xl bg-indigo-50 flex items-center justify-center mb-4">
-            <UserPlus className="w-8 h-8 text-indigo-600" />
+            {usuario ? <User className="w-8 h-8 text-indigo-600" /> : <UserPlus className="w-8 h-8 text-indigo-600" />}
           </div>
 
-          <h2 className="text-2xl font-black text-slate-900 tracking-tight">Convidar Membro</h2>
-          <p className="text-slate-500 font-medium text-sm mt-1">Preencha os dados para adicionar um novo membro à equipe.</p>
+          <h2 className="text-2xl font-black text-slate-900 tracking-tight">
+            {usuario ? 'Editar Usuário' : 'Novo Usuário'}
+          </h2>
+          <p className="text-slate-500 font-medium text-sm mt-1">
+            {usuario ? 'Atualize os dados do usuário.' : 'Preencha os dados para criar um novo usuário.'}
+          </p>
         </div>
 
         <div className="px-8 space-y-4 max-h-[60vh] overflow-y-auto">
-          <div>
-            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Email *</label>
-            <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <input
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className={`w-full h-12 pl-10 pr-4 bg-slate-50 border ${errors.email ? 'border-red-300' : 'border-slate-200'} rounded-2xl text-sm font-medium focus:ring-4 focus:ring-indigo-600/5 focus:border-indigo-600 transition-all`}
-                placeholder="email@exemplo.com"
-                disabled={isLoading}
-              />
-            </div>
-            {errors.email && <p className="text-xs text-red-500 mt-1 font-medium">{errors.email}</p>}
-          </div>
-
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Nome *</label>
@@ -142,17 +160,49 @@ export function InviteMemberModal({ isOpen, onClose, onInvite, isLoading = false
           </div>
 
           <div>
-            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Telefone</label>
+            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Email *</label>
             <div className="relative">
-              <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <input
-                type="tel"
-                value={formData.telefone}
-                onChange={(e) => setFormData({ ...formData, telefone: e.target.value })}
-                className="w-full h-12 pl-10 pr-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium focus:ring-4 focus:ring-indigo-600/5 focus:border-indigo-600 transition-all"
-                placeholder="(00) 00000-0000"
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                className={`w-full h-12 pl-10 pr-4 bg-slate-50 border ${errors.email ? 'border-red-300' : 'border-slate-200'} rounded-2xl text-sm font-medium focus:ring-4 focus:ring-indigo-600/5 focus:border-indigo-600 transition-all`}
+                placeholder="email@exemplo.com"
                 disabled={isLoading}
               />
+            </div>
+            {errors.email && <p className="text-xs text-red-500 mt-1 font-medium">{errors.email}</p>}
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Telefone</label>
+              <div className="relative">
+                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input
+                  type="tel"
+                  value={formData.telefone}
+                  onChange={(e) => setFormData({ ...formData, telefone: e.target.value })}
+                  className="w-full h-12 pl-10 pr-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium focus:ring-4 focus:ring-indigo-600/5 focus:border-indigo-600 transition-all"
+                  placeholder="(00) 00000-0000"
+                  disabled={isLoading}
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Matrícula (RE)</label>
+              <div className="relative">
+                <Badge className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input
+                  type="text"
+                  value={formData.matricula}
+                  onChange={(e) => setFormData({ ...formData, matricula: e.target.value })}
+                  className="w-full h-12 pl-10 pr-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium focus:ring-4 focus:ring-indigo-600/5 focus:border-indigo-600 transition-all"
+                  placeholder="12345"
+                  disabled={isLoading}
+                />
+              </div>
             </div>
           </div>
 
@@ -160,7 +210,7 @@ export function InviteMemberModal({ isOpen, onClose, onInvite, isLoading = false
             <div className="space-y-1.5">
               <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Perfil de Acesso</label>
               <div className="relative group">
-                <Shield className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-indigo-600 transition-colors pointer-events-none" />
+                <Shield className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
                 <select
                   value={formData.perfil_acesso}
                   onChange={(e) => setFormData({ ...formData, perfil_acesso: e.target.value })}
@@ -171,7 +221,7 @@ export function InviteMemberModal({ isOpen, onClose, onInvite, isLoading = false
                     <option key={profile.value} value={profile.value}>{profile.label}</option>
                   ))}
                 </select>
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none group-focus-within:rotate-180 transition-transform" />
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
               </div>
             </div>
             <div className="space-y-1.5">
@@ -183,14 +233,26 @@ export function InviteMemberModal({ isOpen, onClose, onInvite, isLoading = false
                   className="w-full h-12 px-4 pr-10 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-700 focus:ring-4 focus:ring-indigo-600/5 focus:border-indigo-600 transition-all appearance-none cursor-pointer hover:bg-white"
                   disabled={isLoading || loadingPatentes}
                 >
-                  <option value="" disabled>Selecione uma patente</option>
+                  <option value="">Selecione</option>
                   {patentes?.map(patente => (
                     <option key={patente.id} value={patente.nome}>{patente.nome}</option>
                   ))}
                 </select>
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none group-focus-within:rotate-180 transition-transform" />
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
               </div>
             </div>
+          </div>
+
+          <div>
+            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Função Operacional</label>
+            <input
+              type="text"
+              value={formData.funcao_operacional}
+              onChange={(e) => setFormData({ ...formData, funcao_operacional: e.target.value })}
+              className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium focus:ring-4 focus:ring-indigo-600/5 focus:border-indigo-600 transition-all"
+              placeholder="Ex: Patrulha, Apoio, Fiscalização"
+              disabled={isLoading}
+            />
           </div>
         </div>
 
@@ -207,8 +269,8 @@ export function InviteMemberModal({ isOpen, onClose, onInvite, isLoading = false
             disabled={isLoading}
             className="flex-1 px-6 py-4 bg-indigo-600 text-white font-black text-xs uppercase tracking-widest rounded-2xl hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-600/20 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
           >
-            {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
-            Convidar
+            {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : (usuario ? <User className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />)}
+            {usuario ? 'Salvar' : 'Criar'}
           </button>
         </div>
       </div>

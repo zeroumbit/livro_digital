@@ -574,7 +574,12 @@ export function OcorrenciasPage({ categoria = 'padrao', title = 'Registro de Oco
       if (error) throw error;
       
       toast.success('Ocorrência excluída com sucesso!');
-      queryClient.invalidateQueries({ queryKey: ['occurrences'] });
+      
+      const deletedId = selectedOc.id;
+      queryClient.setQueryData(
+        ['occurrences', profile?.instituicao_id, categoria],
+        (oldData: any[]) => oldData ? oldData.filter((oc: any) => oc.id !== deletedId) : []
+      );
     } catch (err) {
       console.error(err);
       toast.error('Erro ao excluir ocorrência.');

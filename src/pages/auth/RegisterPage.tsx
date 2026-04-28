@@ -350,9 +350,9 @@ export function RegisterPage() {
           
           <div className="flex-1">
             <div className="mb-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <div className="inline-flex items-center justify-center px-3 py-1 rounded-full bg-slate-100 text-slate-600 text-xs font-bold mb-4 uppercase tracking-wider">
-                Passo {step} de 3
-              </div>
+                <div className="inline-flex items-center justify-center px-3 py-1 rounded-full bg-slate-100 text-slate-600 text-xs font-bold mb-4 uppercase tracking-wider">
+                  Passo {step} de 4
+                </div>
               <h2 className="text-3xl font-extrabold text-slate-900 mb-2 tracking-tight">{stepTitles[step].title}</h2>
               <p className="text-slate-500 text-lg">{stepTitles[step].subtitle}</p>
             </div>

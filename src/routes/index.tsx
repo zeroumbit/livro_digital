@@ -31,7 +31,7 @@ const AdminConfiguracoes = createLazy(() => import('@/pages/admin/AdminConfigura
 
 const DashboardGestor = createLazy(() => import('@/pages/dashboard/DashboardGestor').then(m => ({ default: m.DashboardGestor })));
 const EquipesPage = createLazy(() => import('@/pages/dashboard/EquipesPage').then(m => ({ default: m.EquipesPage })));
-const AssinaturaPage = createLazy(() => import('@/pages/dashboard/AssinaturaPage').then(m => ({ default: m.AssinaturaPage })));
+  const InstituicaoPage = createLazy(() => import('@/pages/dashboard/InstituicaoPage').then(m => ({ default: m.InstituicaoPage })));
 const VeiculosPage = createLazy(() => import('@/pages/dashboard/VeiculosPage').then(m => ({ default: m.VeiculosPage })));
 const OcorrenciasPage = createLazy(() => import('@/pages/dashboard/OcorrenciasPage').then(m => ({ default: m.OcorrenciasPage })));
 const EditOccurrencePage = createLazy(() => import('@/pages/dashboard/EditOccurrencePage').then(m => ({ default: m.EditOccurrencePage })));
@@ -41,6 +41,8 @@ const ChamadosPage = createLazy(() => import('@/pages/dashboard/ChamadosPage').t
 const EscalasPage = createLazy(() => import('@/pages/dashboard/EscalasPage').then(m => ({ default: m.EscalasPage })));
 const CreateOcorrenciaPage = createLazy(() => import('@/pages/dashboard/CreateOcorrenciaPage').then(m => ({ default: m.CreateOcorrenciaPage })));
 const ProfilePage = createLazy(() => import('@/pages/dashboard/ProfilePage').then(m => ({ default: m.ProfilePage })));
+const MeEquipePage = createLazy(() => import('@/pages/dashboard/MeEquipePage').then(m => ({ default: m.MeEquipePage })));
+const UsuariosPage = createLazy(() => import('@/pages/dashboard/UsuariosPage').then(m => ({ default: m.UsuariosPage })));
 
 // Page wrapper com Suspense otimizado
 const Page = ({ children }: { children: React.ReactNode }) => (
@@ -198,12 +200,12 @@ export const router = createBrowserRouter([
       },
       {
         path: '/usuarios',
-        element: <div className="p-8"><h1 className="text-3xl font-black">Gestão de Usuários e Efetivo</h1></div>,
+        element: <Page><UsuariosPage /></Page>,
       },
-      {
-        path: '/assinatura',
-        element: <Page><AssinaturaPage /></Page>,
-      },
+       {
+         path: '/instituicao',
+         element: <Page><InstituicaoPage /></Page>,
+       },
       {
         path: '/configuracoes',
         element: <Page><ConfiguracoesPage /></Page>,
@@ -215,7 +217,7 @@ export const router = createBrowserRouter([
       // Sobre Mim
       {
         path: '/me/equipe',
-        element: <div className="p-8"><h1 className="text-3xl font-black">Minha Equipe Atual</h1></div>,
+        element: <Page><MeEquipePage /></Page>,
       },
       {
         path: '/me/escala',

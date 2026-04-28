@@ -77,8 +77,6 @@ export const useOccurrences = (categoria: string = 'padrao') => {
     queryKey: ['occurrences', profile?.instituicao_id, categoria],
     queryFn: () => fetchOccurrences(profile?.instituicao_id || '', categoria),
     enabled: !!profile?.instituicao_id,
-    staleTime: 1000 * 60 * 10,
-    gcTime: 1000 * 60 * 30,
   });
 };
 

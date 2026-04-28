@@ -11,7 +11,9 @@ import {
   Check, 
   ChevronRight,
   ShieldCheck,
-  Type
+  Type,
+  Pencil,
+  X
 } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { supabase } from '@/lib/supabase';
@@ -74,6 +76,8 @@ export function ConfiguracoesPage() {
   });
 
   const [newBairro, setNewBairro] = useState('');
+  const [editingBairroId, setEditingBairroId] = useState<string | null>(null);
+  const [editingBairroNome, setEditingBairroNome] = useState('');
 
   const fetchBairros = async () => {
     if (!institution?.id) return;
@@ -132,6 +136,33 @@ export function ConfiguracoesPage() {
     const { error } = await supabase.from('bairros').delete().eq('id', id);
     if (error) return toast.error(error.message);
     fetchBairros();
+  };
+
+  const handleStartEditBairro = (bairro: any) => {
+    setEditingBairroId(bairro.id);
+    setEditingBairroNome(bairro.nome);
+  };
+
+  const handleSaveEditBairro = async () => {
+    if (!editingBairroId || !editingBairroNome) return;
+    try {
+      const { error } = await supabase
+        .from('bairros')
+        .update({ nome: editingBairroNome })
+        .eq('id', editingBairroId);
+      if (error) throw error;
+      setEditingBairroId(null);
+      setEditingBairroNome('');
+      fetchBairros();
+      toast.success('Território atualizado com sucesso!');
+    } catch (e: any) {
+      toast.error(e.message);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingBairroId(null);
+    setEditingBairroNome('');
   };
 
   return (
@@ -239,18 +270,53 @@ export function ConfiguracoesPage() {
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 pt-4">
-                            {config.bairros.map((b: any) => (
-                                <div key={b.id} className="group bg-slate-50 p-4 rounded-2xl flex items-center justify-between border border-transparent hover:border-slate-200 transition-all">
-                                    <span className="text-sm font-bold text-slate-700">{b.nome}</span>
-                                    <button 
-                                        onClick={() => handleDeleteBairro(b.id)}
-                                        className="p-2 text-slate-300 hover:text-rose-500"
-                                    >
-                                        <Trash2 className="w-4 h-4" />
-                                    </button>
-                                </div>
-                            ))}
-                        </div>
+                             {config.bairros.map((b: any) => (
+                                 <div key={b.id} className="group bg-slate-50 p-4 rounded-2xl flex items-center justify-between border border-transparent hover:border-slate-200 transition-all">
+                                     {editingBairroId === b.id ? (
+                                         // Modo de edição
+                                         <div className="flex-1 flex items-center gap-2">
+                                             <input 
+                                                 value={editingBairroNome}
+                                                 onChange={(e) => setEditingBairroNome(e.target.value)}
+                                                 className="flex-1 h-8 px-3 bg-white border border-slate-200 rounded-lg text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                                                 autoFocus
+                                             />
+                                             <button 
+                                                 onClick={handleSaveEditBairro}
+                                                 className="p-2 text-emerald-600 hover:text-emerald-700"
+                                             >
+                                                 <Check className="w-4 h-4" />
+                                             </button>
+                                             <button 
+                                                 onClick={handleCancelEdit}
+                                                 className="p-2 text-slate-400 hover:text-slate-600"
+                                             >
+                                                 <X className="w-4 h-4" />
+                                             </button>
+                                         </div>
+                                     ) : (
+                                         // Modo de visualização
+                                         <>
+                                             <span className="text-sm font-bold text-slate-700">{b.nome}</span>
+                                             <div className="flex items-center gap-1">
+                                                 <button 
+                                                     onClick={() => handleStartEditBairro(b)}
+                                                     className="p-2 text-slate-300 hover:text-indigo-600"
+                                                 >
+                                                     <Pencil className="w-4 h-4" />
+                                                 </button>
+                                                 <button 
+                                                     onClick={() => handleDeleteBairro(b.id)}
+                                                     className="p-2 text-slate-300 hover:text-rose-500"
+                                                 >
+                                                     <Trash2 className="w-4 h-4" />
+                                                 </button>
+                                             </div>
+                                         </>
+                                     )}
+                                 </div>
+                             ))}
+                         </div>
                     </SettingGroup>
                 </div>
             )}

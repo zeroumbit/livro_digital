@@ -123,7 +123,7 @@ const managerNavGroups: NavGroup[] = [
       { label: 'Minha Equipe', icon: Users, path: '/me/equipe', roles: ['gcm', 'comando', 'gestor', 'administrativo'] },
       { label: 'Minha Escala', icon: Calendar, path: '/me/escala', roles: ['gcm', 'comando', 'gestor', 'administrativo'] },
       { label: 'Meu Perfil', icon: User, path: '/me/perfil', roles: ['gcm', 'comando', 'gestor', 'administrativo'] },
-      { label: 'Instituição', icon: Building2, path: '/assinatura', roles: ['gestor'] },
+       { label: 'Instituição', icon: Building2, path: '/instituicao', roles: ['gestor'] },
     ]
   }
 ];

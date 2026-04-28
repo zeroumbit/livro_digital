@@ -30,32 +30,32 @@ BEGIN
         SELECT id INTO v_plano_id FROM public.planos WHERE nome ILIKE 'Básico' LIMIT 1;
 
         -- Inserção robusta de Instituição
-        INSERT INTO public.instituicoes (
-            razao_social, 
-            cnpj, 
-            slug, 
-            telefone,
-            cep, logradouro, numero, complemento, bairro, cidade, estado,
-            gestor_user_id,
-            plano_id,
-            status_assinatura
-        )
-        VALUES (
-            v_razao_social,
-            v_cnpj,
-            v_slug,
-            NEW.raw_user_meta_data->>'telefone',
-            NEW.raw_user_meta_data->'endereco'->>'cep',
-            NEW.raw_user_meta_data->'endereco'->>'logradouro',
-            NEW.raw_user_meta_data->'endereco'->>'numero',
-            NEW.raw_user_meta_data->'endereco'->>'complemento',
-            NEW.raw_user_meta_data->'endereco'->>'bairro',
-            NEW.raw_user_meta_data->'endereco'->>'cidade',
-            COALESCE(SUBSTRING(NEW.raw_user_meta_data->'endereco'->>'estado' FROM 1 FOR 2), 'CE'),
-            NEW.id,
-            v_plano_id,
-            'pendente'
-        )
+         INSERT INTO public.instituicoes (
+             razao_social, 
+             cnpj, 
+             slug, 
+             telefone,
+             cep, logradouro, numero, complemento, bairro, cidade, estado,
+             gestor_user_id,
+             plano_id,
+             status_assinatura
+         )
+         VALUES (
+             v_razao_social,
+             v_cnpj,
+             v_slug,
+             NEW.raw_user_meta_data->>'telefone',
+             NEW.raw_user_meta_data->'endereco'->>'cep',
+             NEW.raw_user_meta_data->'endereco'->>'logradouro',
+             NEW.raw_user_meta_data->'endereco'->>'numero',
+             NEW.raw_user_meta_data->'endereco'->>'complemento',
+             NEW.raw_user_meta_data->'endereco'->>'bairro',
+             NEW.raw_user_meta_data->'endereco'->>'cidade',
+             COALESCE(SUBSTRING(NEW.raw_user_meta_data->'endereco'->>'estado' FROM 1 FOR 2), 'CE'),
+             NEW.id,
+             v_plano_id,
+             'pendente'
+         )
         RETURNING id INTO v_instituicao_id;
     END IF;
 
