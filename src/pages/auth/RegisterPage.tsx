@@ -235,6 +235,7 @@ export function RegisterPage() {
             primeiro_nome: data.primeiro_nome,
             sobrenome: data.sobrenome,
             funcao_operacional: 'SECRETÁRIO',
+            // Dados da instituição
             razaoSocial: data.razaoSocial,
             cnpj: data.cnpj,
             telefone: data.telefone,
@@ -246,7 +247,12 @@ export function RegisterPage() {
               bairro: data.bairro,
               cidade: data.cidade,
               estado: data.estado,
-            }
+            },
+            // Dados do gestor (secretário)
+            gestor_nome_completo: data.gestorNomeCompleto,
+            gestor_como_chamado: data.gestorComoChamado || data.gestorNomeCompleto,
+            gestor_telefone: data.gestorTelefone,
+            gestor_email: data.gestorEmail,
           }
         }
       });
@@ -627,20 +633,20 @@ export function RegisterPage() {
               Voltar
             </Button>
 
-            {step < 3 ? (
-              <Button onClick={handleNextStep}>
-                Próximo Passo
-                <ChevronRight className="w-4 h-4 ml-2" />
-              </Button>
-            ) : (
-              <Button onClick={onSubmit} disabled={isSubmitting}>
-                {isSubmitting ? (
-                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" />A Processar...</>
-                ) : (
-                  'Concluir Registo'
-                )}
-              </Button>
-            )}
+           {step < 4 ? (
+               <Button onClick={handleNextStep}>
+                 Próximo Passo
+                 <ChevronRight className="w-4 h-4 ml-2" />
+               </Button>
+             ) : (
+               <Button onClick={onSubmit} disabled={isSubmitting}>
+                 {isSubmitting ? (
+                   <><Loader2 className="w-4 h-4 mr-2 animate-spin" />A Processar...</>
+                 ) : (
+                   'Concluir Registo'
+                 )}
+               </Button>
+             )}
           </div>
 
           <div className="mt-12 pt-8 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between text-[13px] font-medium text-slate-500">
