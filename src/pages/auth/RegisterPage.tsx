@@ -487,86 +487,132 @@ export function RegisterPage() {
                 </div>
               )}
 
-              {/* === ETAPA 3 === */}
-              {step === 3 && (
-                <div className="space-y-7 animate-in fade-in duration-500">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                    <div className="md:col-span-1">
-                      <Label htmlFor="cep">CEP *</Label>
-                      <div className="relative">
-                          <Input 
-                            id="cep" placeholder="00000-000"
-                            {...register('cep')} 
-                            onChange={(e) => {
-                                e.target.value = formatCEP(e.target.value);
-                                register('cep').onChange(e);
-                            }}
-                            className={errors.cep ? 'border-rose-300 bg-rose-50/50 pr-10' : 'pr-10'}
-                          />
-                          {isFetchingCep && (
-                              <Loader2 className="w-4 h-4 text-indigo-600 animate-spin absolute right-3 top-1/2 -translate-y-1/2" />
-                          )}
-                      </div>
-                      <ErrorMessage error={errors.cep?.message} />
-                    </div>
-                    <div className="md:col-span-2">
-                       <Label htmlFor="logradouro">Rua / Logradouro</Label>
-                       <Input id="logradouro" {...register('logradouro')} className={errors.logradouro ? "border-rose-500 focus-visible:ring-rose-500/20" : ""} />
-                       <ErrorMessage error={errors.logradouro?.message} />
-                    </div>
-                  </div>
+               {/* === ETAPA 3 === */}
+               {step === 3 && (
+                 <div className="space-y-7 animate-in fade-in duration-500">
+                   <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                     <div className="md:col-span-1">
+                       <Label htmlFor="cep">CEP *</Label>
+                       <div className="relative">
+                           <Input 
+                             id="cep" placeholder="00000-000"
+                             {...register('cep')} 
+                             onChange={(e) => {
+                                 e.target.value = formatCEP(e.target.value);
+                                 register('cep').onChange(e);
+                             }}
+                             className={errors.cep ? 'border-rose-300 bg-rose-50/50 pr-10' : 'pr-10'}
+                           />
+                           {isFetchingCep && (
+                               <Loader2 className="w-4 h-4 text-indigo-600 animate-spin absolute right-3 top-1/2 -translate-y-1/2" />
+                           )}
+                       </div>
+                       <ErrorMessage error={errors.cep?.message} />
+                     </div>
+                     <div className="md:col-span-2">
+                        <Label htmlFor="logradouro">Rua / Logradouro</Label>
+                        <Input id="logradouro" {...register('logradouro')} className={errors.logradouro ? "border-rose-500 focus-visible:ring-rose-500/20" : ""} />
+                        <ErrorMessage error={errors.logradouro?.message} />
+                     </div>
+                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                    <div className="md:col-span-1">
-                      <Label htmlFor="numero">Número *</Label>
-                      <Input 
-                        id="numero" {...register('numero')}
-                        className={errors.numero ? 'border-rose-300 bg-rose-50/50 focus-visible:ring-rose-500/20' : ''}
-                      />
-                      <ErrorMessage error={errors.numero?.message} />
-                    </div>
-                    <div className="md:col-span-2">
-                      <Label htmlFor="complemento">Complemento</Label>
-                      <Input id="complemento" {...register('complemento')} placeholder="Bloco, Andar, Sala..." />
-                    </div>
-                  </div>
+                   <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                     <div className="md:col-span-1">
+                       <Label htmlFor="numero">Número *</Label>
+                       <Input 
+                         id="numero" {...register('numero')}
+                         className={errors.numero ? 'border-rose-300 bg-rose-50/50 focus-visible:ring-rose-500/20' : ''}
+                       />
+                       <ErrorMessage error={errors.numero?.message} />
+                     </div>
+                     <div className="md:col-span-2">
+                       <Label htmlFor="complemento">Complemento</Label>
+                       <Input id="complemento" {...register('complemento')} placeholder="Bloco, Andar, Sala..." />
+                     </div>
+                   </div>
 
-                  <div className="grid grid-cols-1 gap-5">
-                    <div>
-                      <Label htmlFor="bairro">Bairro *</Label>
-                      <Input id="bairro" {...register('bairro')} className={errors.bairro ? 'border-rose-300 bg-rose-50/50 focus-visible:ring-rose-500/20' : ''} />
-                      <ErrorMessage error={errors.bairro?.message} />
-                    </div>
-                  </div>
+                   <div className="grid grid-cols-1 gap-5">
+                     <div>
+                       <Label htmlFor="bairro">Bairro *</Label>
+                       <Input id="bairro" {...register('bairro')} className={errors.bairro ? 'border-rose-300 bg-rose-50/50 focus-visible:ring-rose-500/20' : ''} />
+                       <ErrorMessage error={errors.bairro?.message} />
+                     </div>
+                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                    <div className="md:col-span-2">
-                      <Label htmlFor="cidade">Cidade *</Label>
-                      <SelectNative id="cidade" {...register('cidade')} className={errors.cidade ? 'border-rose-300 bg-rose-50/50 focus-visible:ring-rose-500/20' : ''}>
-                        <option value="">Selecione a cidade</option>
-                        {watch('cidade') && <option value={watch('cidade')}>{watch('cidade')}</option>}
-                        <option value="Fortaleza">Fortaleza</option>
-                        <option value="Caucaia">Caucaia</option>
-                        <option value="Canindé">Canindé</option>
-                        {/* As outras opções seriam carregadas pela sua API de Municípios */}
-                      </SelectNative>
-                      <ErrorMessage error={errors.cidade?.message} />
-                    </div>
-                    <div className="md:col-span-1">
-                      <Label htmlFor="estado">Estado *</Label>
-                      <SelectNative id="estado" {...register('estado')} className={errors.estado ? 'border-rose-300 bg-rose-50/50 focus-visible:ring-rose-500/20' : ''}>
-                        <option value="">UF</option>
-                        {watch('estado') && <option value={watch('estado')}>{watch('estado')}</option>}
-                        <option value="CE">CE</option>
-                        <option value="SP">SP</option>
-                        <option value="RJ">RJ</option>
-                        <option value="MG">MG</option>
-                      </SelectNative>
-                      <ErrorMessage error={errors.estado?.message} />
-                    </div>
-                  </div>
-                </div>
-              )}
+                   <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                     <div className="md:col-span-2">
+                       <Label htmlFor="cidade">Cidade *</Label>
+                       <SelectNative id="cidade" {...register('cidade')} className={errors.cidade ? 'border-rose-300 bg-rose-50/50 focus-visible:ring-rose-500/20' : ''}>
+                         <option value="">Selecione a cidade</option>
+                         {watch('cidade') && <option value={watch('cidade')}>{watch('cidade')}</option>}
+                         <option value="Fortaleza">Fortaleza</option>
+                         <option value="Caucaia">Caucaia</option>
+                         <option value="Canindé">Canindé</option>
+                         {/* As outras opções seriam carregadas pela sua API de Municípios */}
+                       </SelectNative>
+                       <ErrorMessage error={errors.cidade?.message} />
+                     </div>
+                     <div className="md:col-span-1">
+                       <Label htmlFor="estado">Estado *</Label>
+                       <SelectNative id="estado" {...register('estado')} className={errors.estado ? 'border-rose-300 bg-rose-50/50 focus-visible:ring-rose-500/20' : ''}>
+                         <option value="">UF</option>
+                         {watch('estado') && <option value={watch('estado')}>{watch('estado')}</option>}
+                         <option value="CE">CE</option>
+                         <option value="SP">SP</option>
+                         <option value="RJ">RJ</option>
+                         <option value="MG">MG</option>
+                       </SelectNative>
+                       <ErrorMessage error={errors.estado?.message} />
+                     </div>
+                   </div>
+                 </div>
+               )}
+
+               {/* === ETAPA 4: DADOS DO GESTOR (SECRETÁRIO) === */}
+               {step === 4 && (
+                 <div className="space-y-7 animate-in fade-in duration-500">
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                     <div className="md:col-span-2">
+                       <Label htmlFor="gestorNomeCompleto">Nome Completo do Secretário *</Label>
+                       <Input 
+                         id="gestorNomeCompleto" placeholder="Ex: João Silva"
+                         {...register('gestorNomeCompleto')}
+                         className={errors.gestorNomeCompleto ? 'border-rose-300 bg-rose-50/50 focus-visible:ring-rose-500/20' : ''}
+                       />
+                       <ErrorMessage error={errors.gestorNomeCompleto?.message} />
+                     </div>
+                     <div>
+                       <Label htmlFor="gestorComoChamado">Como é chamado <span className="text-slate-400 font-normal lowercase">(Opcional)</span></Label>
+                       <Input 
+                         id="gestorComoChamado" placeholder="Ex: João"
+                         {...register('gestorComoChamado')}
+                       />
+                     </div>
+                     <div>
+                       <Label htmlFor="gestorTelefone">Telefone/WhatsApp *</Label>
+                       <Input 
+                         id="gestorTelefone" placeholder="(00) 00000-0000"
+                         {...register('gestorTelefone')}
+                         onChange={(e) => {
+                           e.target.value = formatPhone(e.target.value);
+                           register('gestorTelefone').onChange(e);
+                         }}
+                         className={errors.gestorTelefone ? 'border-rose-300 bg-rose-50/50 focus-visible:ring-rose-500/20' : ''}
+                       />
+                       <ErrorMessage error={errors.gestorTelefone?.message} />
+                     </div>
+                     <div className="md:col-span-2">
+                       <Label htmlFor="gestorEmail">E-mail Institucional *</Label>
+                       <Input 
+                         id="gestorEmail" type="email" placeholder="secretario@prefeitura.gov.br"
+                         {...register('gestorEmail')}
+                         className={errors.gestorEmail ? 'border-rose-300 bg-rose-50/50 focus-visible:ring-rose-500/20' : ''}
+                       />
+                       <ErrorMessage error={errors.gestorEmail?.message} />
+                     </div>
+                   </div>
+                 </div>
+               )}
             </form>
           </div>
 
