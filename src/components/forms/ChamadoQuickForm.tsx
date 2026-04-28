@@ -156,7 +156,7 @@ export function ChamadoQuickForm({ onClose, onSuccess }: Props) {
           <section className="space-y-4">
             <div className="flex items-center gap-2 text-slate-400">
                <MapPinCheck className="w-4 h-4" />
-               <span className="text-[10px] font-black uppercase tracking-widest">Origem do Chamado</span>
+               <span className="text-xs font-black uppercase tracking-widest">Origem do Chamado</span>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
               {origemOptions.map(o => (
@@ -173,7 +173,7 @@ export function ChamadoQuickForm({ onClose, onSuccess }: Props) {
                       : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
                   }`}
                 >
-                  <p className="text-[10px] font-black leading-tight">{o.label}</p>
+                  <p className="text-xs font-black leading-tight">{o.label}</p>
                 </button>
               ))}
             </div>
@@ -204,7 +204,7 @@ export function ChamadoQuickForm({ onClose, onSuccess }: Props) {
           <section className="space-y-4">
             <div className="flex items-center gap-2 text-slate-400">
                <ReceiptText className="w-4 h-4" />
-               <span className="text-[10px] font-black uppercase tracking-widest">Detalhes Adicionais</span>
+               <span className="text-xs font-black uppercase tracking-widest">Detalhes Adicionais</span>
             </div>
             <textarea 
               {...register('detalhes')}
@@ -218,7 +218,7 @@ export function ChamadoQuickForm({ onClose, onSuccess }: Props) {
           <section className="space-y-4">
             <div className="flex items-center gap-2 text-slate-400">
                <Users className="w-4 h-4" />
-               <span className="text-[10px] font-black uppercase tracking-widest">Parceiros a Acionar</span>
+               <span className="text-xs font-black uppercase tracking-widest">Parceiros a Acionar</span>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
               <Controller
@@ -254,7 +254,7 @@ export function ChamadoQuickForm({ onClose, onSuccess }: Props) {
           <section className="space-y-4">
             <div className="flex items-center gap-2 text-slate-400">
                <AlertTriangle className="w-4 h-4" />
-               <span className="text-[10px] font-black uppercase tracking-widest">Natureza da Ocorrência</span>
+               <span className="text-xs font-black uppercase tracking-widest">Natureza da Ocorrência</span>
             </div>
             <Controller
               name="natureza"
@@ -270,7 +270,7 @@ export function ChamadoQuickForm({ onClose, onSuccess }: Props) {
           <section className="space-y-4">
             <div className="flex items-center gap-2 text-slate-400">
                <Users className="w-4 h-4" />
-               <span className="text-[10px] font-black uppercase tracking-widest">Quantidade de Envolvidos</span>
+               <span className="text-xs font-black uppercase tracking-widest">Quantidade de Envolvidos</span>
             </div>
             <Controller
               name="qtde_envolvidos"
@@ -308,7 +308,7 @@ export function ChamadoQuickForm({ onClose, onSuccess }: Props) {
           <section className="space-y-4">
             <div className="flex items-center gap-2 text-slate-400">
                <Navigation className="w-4 h-4" />
-               <span className="text-[10px] font-black uppercase tracking-widest">Localização do Chamado</span>
+               <span className="text-xs font-black uppercase tracking-widest">Localização do Chamado</span>
             </div>
             <LocationInput 
               onLocationChange={(loc) => {
@@ -323,7 +323,7 @@ export function ChamadoQuickForm({ onClose, onSuccess }: Props) {
             />
             {errors.coordenadas && <p className="text-xs font-bold text-red-500">O GPS é obrigatório para acionamento rápido.</p>}
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Ponto de Referência</label>
+              <label className="text-xs font-black text-slate-500 uppercase tracking-widest">Ponto de Referência</label>
               <input 
                 {...register('ponto_referencia')}
                 placeholder="Próximo a..."

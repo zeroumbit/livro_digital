@@ -17,6 +17,36 @@ export interface Member {
   created_at?: string;
 }
 
+export interface Patente {
+  id: string;
+  instituicao_id: string;
+  nome: string;
+  ordem: number;
+  ativo: boolean;
+}
+
+export const usePatentes = () => {
+  const profile = useAuthStore(state => state.profile);
+  
+  return useQuery({
+    queryKey: ['patentes', profile?.instituicao_id],
+    queryFn: async () => {
+      if (!profile?.instituicao_id) return [];
+      
+      const { data, error } = await supabase
+        .from('patentes')
+        .select('*')
+        .eq('instituicao_id', profile.instituicao_id)
+        .eq('ativo', true)
+        .order('ordem', { ascending: true });
+
+      if (error) throw error;
+      return data as Patente[];
+    },
+    enabled: !!profile?.instituicao_id,
+  });
+};
+
 export const useMembers = () => {
   const profile = useAuthStore(state => state.profile);
   

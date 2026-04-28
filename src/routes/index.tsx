@@ -40,6 +40,7 @@ const ConfiguracoesPage = createLazy(() => import('@/pages/dashboard/Configuraco
 const ChamadosPage = createLazy(() => import('@/pages/dashboard/ChamadosPage').then(m => ({ default: m.ChamadosPage })));
 const EscalasPage = createLazy(() => import('@/pages/dashboard/EscalasPage').then(m => ({ default: m.EscalasPage })));
 const CreateOcorrenciaPage = createLazy(() => import('@/pages/dashboard/CreateOcorrenciaPage').then(m => ({ default: m.CreateOcorrenciaPage })));
+const ProfilePage = createLazy(() => import('@/pages/dashboard/ProfilePage').then(m => ({ default: m.ProfilePage })));
 
 // Page wrapper com Suspense otimizado
 const Page = ({ children }: { children: React.ReactNode }) => (
@@ -222,7 +223,7 @@ export const router = createBrowserRouter([
       },
       {
         path: '/me/perfil',
-        element: <div className="p-8"><h1 className="text-3xl font-black">Meus Dados Pessoais</h1></div>,
+        element: <Page><ProfilePage /></Page>,
       },
     ],
   },

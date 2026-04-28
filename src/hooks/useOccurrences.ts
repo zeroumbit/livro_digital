@@ -1,14 +1,13 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/useAuthStore';
 
 export interface Occurrence {
   id: string;
-  title: string;
-  description: string;
-  status: 'pending' | 'in_progress' | 'completed';
+  instituicao_id: string;
   created_at: string;
-  tenant_id: string;
+  status?: string;
+  [key: string]: any;
 }
 
 export const fetchOccurrences = async (instituicaoId: string, categoria: string = 'padrao') => {
@@ -39,13 +38,14 @@ export const fetchOccurrences = async (instituicaoId: string, categoria: string 
   if (!ocorrencias || ocorrencias.length === 0) return [];
 
   if (categoria === 'maria_da_penha' || categoria === 'chamados') {
-    return ocorrencias.map(o => ({
+    return ocorrencias.map((o: any) => ({
       ...o,
-      genero: o.vitima_genero || o.genero || null
+      genero: o.vitima_genero || o.genero || null,
+      _table: tableName
     }));
   }
 
-  const ocorrenciaIds = ocorrencias.map(o => o.id);
+  const ocorrenciaIds = ocorrencias.map((o: any) => o.id);
   
   const { data: envolvidos } = await supabase
     .from(involvedTableName)
@@ -63,9 +63,10 @@ export const fetchOccurrences = async (instituicaoId: string, categoria: string 
     }
   });
 
-  return ocorrencias.map(o => ({
+  return ocorrencias.map((o: any) => ({
     ...o,
-    genero: generosMap[o.id]?.[0] || null
+    genero: generosMap[o.id]?.[0] || null,
+    _table: tableName
   }));
 };
 
@@ -78,6 +79,97 @@ export const useOccurrences = (categoria: string = 'padrao') => {
     enabled: !!profile?.instituicao_id,
     staleTime: 1000 * 60 * 10,
     gcTime: 1000 * 60 * 30,
+  });
+};
+
+export const useCreateOccurrence = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ 
+      data, 
+      categoria = 'padrao' 
+    }: { 
+      data: Record<string, any>;
+      categoria?: string;
+    }) => {
+      const profile = useAuthStore.getState().profile;
+      if (!profile?.instituicao_id) throw new Error('Instituição não encontrada');
+
+      let tableName = 'ocorrencias';
+      if (categoria === 'embriaguez') tableName = 'embriaguez';
+      else if (categoria === 'maria_da_penha') tableName = 'maria_da_penha';
+      else if (categoria === 'chamados') tableName = 'chamados_ocorrencias';
+
+      const { error } = await supabase
+        .from(tableName)
+        .insert([{ ...data, instituicao_id: profile.instituicao_id }]);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['occurrences'] });
+    },
+  });
+};
+
+export const useUpdateOccurrence = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ 
+      id, 
+      data, 
+      categoria = 'padrao' 
+    }: { 
+      id: string;
+      data: Record<string, any>;
+      categoria?: string;
+    }) => {
+      let tableName = 'ocorrencias';
+      if (categoria === 'embriaguez') tableName = 'embriaguez';
+      else if (categoria === 'maria_da_penha') tableName = 'maria_da_penha';
+      else if (categoria === 'chamados') tableName = 'chamados_ocorrencias';
+
+      const { error } = await supabase
+        .from(tableName)
+        .update(data)
+        .eq('id', id);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['occurrences'] });
+    },
+  });
+};
+
+export const useDeleteOccurrence = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ 
+      id, 
+      categoria = 'padrao' 
+    }: { 
+      id: string;
+      categoria?: string;
+    }) => {
+      let tableName = 'ocorrencias';
+      if (categoria === 'embriaguez') tableName = 'embriaguez';
+      else if (categoria === 'maria_da_penha') tableName = 'maria_da_penha';
+      else if (categoria === 'chamados') tableName = 'chamados_ocorrencias';
+
+      const { error } = await supabase
+        .from(tableName)
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['occurrences'] });
+    },
   });
 };
 

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import html2pdf from 'html2pdf.js';
 declare module 'html2pdf.js' {
   interface Html2PdfOptions {
@@ -393,6 +394,7 @@ interface OcorrenciasPageProps {
 
 export function OcorrenciasPage({ categoria = 'padrao', title = 'Registro de Ocorrências' }: OcorrenciasPageProps) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const profile = useAuthStore(state => state.profile);
   const { data: ocorrenciasData, isLoading: loading, refetch: fetchOcorrencias } = useOccurrences(categoria);
@@ -574,7 +576,7 @@ export function OcorrenciasPage({ categoria = 'padrao', title = 'Registro de Oco
       if (error) throw error;
       
       toast.success('Ocorrência excluída com sucesso!');
-      fetchOcorrencias();
+      queryClient.invalidateQueries({ queryKey: ['occurrences'] });
     } catch (err) {
       console.error(err);
       toast.error('Erro ao excluir ocorrência.');
@@ -1076,9 +1078,19 @@ export function OcorrenciasPage({ categoria = 'padrao', title = 'Registro de Oco
                             <div className="space-y-2">
                               <p className="text-sm font-bold text-slate-700">Resultado: <span className="text-indigo-600">{selectedOc.etilometro_resultado} mg/L</span></p>
                               <p className="text-[10px] text-slate-400 font-medium uppercase">{selectedOc.etilometro_marca} • SN: {selectedOc.etilometro_serie}</p>
+                              {selectedOc.etilometro_validade && (
+                                <p className="text-[9px] text-slate-400 font-bold uppercase">Validade: {new Date(selectedOc.etilometro_validade).toLocaleDateString()}</p>
+                              )}
                             </div>
                           ) : (
-                            <p className="text-xs text-slate-500 italic">Teste de etilômetro não realizado.</p>
+                            <div className="space-y-2">
+                              <p className="text-xs text-slate-500 italic font-medium">Teste não realizado.</p>
+                              {selectedOc.etilometro_justificativa && (
+                                <p className="text-[10px] text-red-500 font-bold uppercase bg-red-50 p-2 rounded-lg border border-red-100">
+                                  Motivo: {selectedOc.etilometro_justificativa}
+                                </p>
+                              )}
+                            </div>
                           )}
                         </div>
 
@@ -1107,6 +1119,25 @@ export function OcorrenciasPage({ categoria = 'padrao', title = 'Registro de Oco
                               <span key={i} className="px-2 py-1 bg-white border border-indigo-100 rounded-lg text-[9px] font-bold text-indigo-600 uppercase">{s}</span>
                             )) : <span className="text-[10px] text-slate-400 italic">Nenhum sinal registrado</span>}
                           </div>
+                        </div>
+                      </div>
+
+                      {/* Testes de Coordenação */}
+                      <div className="pt-6 border-t border-indigo-100/50">
+                        <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest block mb-4">Testes de Coordenação Motoras</span>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                           <div className="p-4 bg-white border border-indigo-100 rounded-2xl">
+                              <span className="text-[8px] font-black text-slate-400 uppercase block mb-1">Linha Reta</span>
+                              <p className="text-xs font-black text-indigo-600 uppercase">{selectedOc.teste_linha_reta || 'NÃO REALIZADO'}</p>
+                           </div>
+                           <div className="p-4 bg-white border border-indigo-100 rounded-2xl">
+                              <span className="text-[8px] font-black text-slate-400 uppercase block mb-1">Um Pé</span>
+                              <p className="text-xs font-black text-indigo-600 uppercase">{selectedOc.teste_um_pe || 'NÃO REALIZADO'}</p>
+                           </div>
+                           <div className="p-4 bg-white border border-indigo-100 rounded-2xl">
+                              <span className="text-[8px] font-black text-slate-400 uppercase block mb-1">Dedo ao Nariz</span>
+                              <p className="text-xs font-black text-indigo-600 uppercase">{selectedOc.teste_dedo_nariz || 'NÃO REALIZADO'}</p>
+                           </div>
                         </div>
                       </div>
                     </div>

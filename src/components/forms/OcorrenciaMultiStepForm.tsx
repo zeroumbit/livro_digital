@@ -256,7 +256,12 @@ export function OcorrenciaMultiStepForm({ onClose, onSuccess, initialData, defau
       instituicao_id: profile.instituicao_id,
       criador_id: profile.id,
       status: 'rascunho',
-      prioridade: 'media',
+      ...(currentCategoria !== 'embriaguez' && currentCategoria !== 'maria_da_penha' ? {
+        prioridade: 'media',
+      } : {}),
+      ...(currentCategoria === 'maria_da_penha' || currentCategoria === 'chamados' ? {
+        ultimo_passo: step,
+      } : {}),
       origem: data.origem || (isAgent ? 'EQUIPE' : 'CENTRAL DE RÁDIO'),
       origem_tipo,
       natureza: (data.natureza && data.natureza.length > 0) ? data.natureza : ['Em preenchimento'],
@@ -266,18 +271,21 @@ export function OcorrenciaMultiStepForm({ onClose, onSuccess, initialData, defau
       bairro: data.bairro || 'Pendente',
       referencia: data.ponto_referencia || '',
       coordenadas: data.coordenadas || '',
-      titulo: isEmbriaguez ? `Embriaguez - ${data.envolvidos?.find((e:any) => e.tipo === 'Suspeito')?.nome_completo || 'Em preenchimento'}` : (data.natureza?.[0] || 'Ocorrência em preenchimento'),
-      ultimo_passo: step,
+      ...(currentCategoria === 'maria_da_penha' || currentCategoria === 'chamados' ? {
+        titulo: isEmbriaguez ? `Embriaguez - ${data.envolvidos?.find((e:any) => e.tipo === 'Suspeito')?.nome_completo || 'Em preenchimento'}` : (data.natureza?.[0] || 'Ocorrência em preenchimento'),
+      } : {}),
       cep: data.cep || '',
       cidade: data.cidade || '',
       estado: data.estado || '',
-      canal_origem: data.sub_origem || '',
-      tipo_origem: data.sub_origem || '',
+      ...(currentCategoria === 'chamados' ? {
+        canal_origem: data.sub_origem || '',
+        tipo_origem: data.sub_origem || '',
+      } : {}),
       ...(isEmbriaguez ? {
         etilometro_marca: data.etilometro_marca,
         etilometro_serie: data.etilometro_serie,
         etilometro_resultado: data.etilometro_resultado,
-        etilometro_validade: data.etilometro_validade,
+        etilometro_validade: data.etilometro_validade || null,
         etilometro_realizado: data.etilometro_realizado,
         etilometro_justificativa: data.etilometro_justificativa,
         sinais_aparencia: data.sinais_aparencia,
@@ -289,6 +297,9 @@ export function OcorrenciaMultiStepForm({ onClose, onSuccess, initialData, defau
         ingestao_quantidade: data.ingestao_quantidade,
         ingestao_tempo: data.ingestao_tempo,
         conclusao_tecnica: data.conclusao_tecnica,
+      } : {}),
+      // Natureza alteração só existe nas tabelas padrão e de chamados
+      ...(!isEmbriaguez && currentCategoria !== 'maria_da_penha' ? {
         natureza_alteracao: data.natureza_alteracao || null,
       } : {}),
     };
@@ -337,9 +348,11 @@ export function OcorrenciaMultiStepForm({ onClose, onSuccess, initialData, defau
     setLoading(true);
     if (isFinal) setIsSubmitting(true);
     
+    const finalId = draftId || offlineId;
+    let payloadFinal: any = null;
+
     try {
       if (!profile?.instituicao_id || !profile?.id) return;
-
 
       const tipo_registro = profile.perfil_acesso === 'gcm' ? 'campo' : 'central_radio';
       
@@ -348,12 +361,16 @@ export function OcorrenciaMultiStepForm({ onClose, onSuccess, initialData, defau
       if (data.origem === 'CENTRAL DE RÁDIO' || data.origem === 'DENÚNCIA ANÔNIMA') origem_tipo = 'RADIO';
       if (data.origem === 'ÓRGÃOS PARCEIROS' || data.origem === 'FORÇAS DE SEGURANÇA') origem_tipo = 'PARCEIRO';
 
-const payload: any = {
+      const payload: any = {
         instituicao_id: profile.instituicao_id,
         criador_id: profile.id,
         status: isFinal ? 'finalizada' : 'rascunho',
-        ultimo_passo: step,
-        prioridade: 'media',
+        ...(currentCategoria !== 'embriaguez' && currentCategoria !== 'maria_da_penha' ? {
+          prioridade: 'media',
+        } : {}),
+        ...(currentCategoria === 'maria_da_penha' || currentCategoria === 'chamados' ? {
+          ultimo_passo: step,
+        } : {}),
         origem: data.origem || (isAgent ? 'EQUIPE' : 'CENTRAL DE RÁDIO'),
         origem_tipo,
         natureza: data.natureza,
@@ -366,16 +383,19 @@ const payload: any = {
         referencia: data.ponto_referencia || '',
         coordenadas: data.coordenadas || '',
         cep: data.cep || '',
-        natureza_alteracao: data.natureza_alteracao || null,
-        canal_origem: data.sub_origem || '',
-        tipo_origem: data.sub_origem || '',
-        titulo: isEmbriaguez ? `Embriaguez - ${data.envolvidos.find(e => e.tipo === 'Condutor')?.nome_completo || 'Condutor'}` : (data.natureza?.[0] || 'Ocorrência registrada'),
+        ...(currentCategoria === 'chamados' ? {
+          canal_origem: data.sub_origem || '',
+          tipo_origem: data.sub_origem || '',
+        } : {}),
+        ...(currentCategoria === 'maria_da_penha' || currentCategoria === 'chamados' ? {
+          titulo: isEmbriaguez ? `Embriaguez - ${data.envolvidos.find(e => e.tipo === 'Condutor')?.nome_completo || 'Condutor'}` : (data.natureza?.[0] || 'Ocorrência registrada'),
+        } : {}),
         
         ...(isEmbriaguez ? {
           etilometro_marca: data.etilometro_marca,
           etilometro_serie: data.etilometro_serie,
           etilometro_resultado: data.etilometro_resultado,
-          etilometro_validade: data.etilometro_validade,
+          etilometro_validade: data.etilometro_validade || null,
           etilometro_realizado: data.etilometro_realizado,
           etilometro_justificativa: data.etilometro_justificativa,
           sinais_aparencia: data.sinais_aparencia,
@@ -387,9 +407,15 @@ const payload: any = {
           ingestao_quantidade: data.ingestao_quantidade,
           ingestao_tempo: data.ingestao_tempo,
           conclusao_tecnica: data.conclusao_tecnica,
+        } : {}),
+        // Natureza alteração só existe nas tabelas padrão e de chamados
+        ...(!isEmbriaguez && currentCategoria !== 'maria_da_penha' ? {
           natureza_alteracao: data.natureza_alteracao || null,
         } : {}),
       };
+      
+      // Inicializa payloadFinal com os dados básicos para garantir disponibilidade no catch
+      payloadFinal = { ...payload };
 
       // Adicionar chamado_id se vier de um chamado
       if (currentCategoria === 'chamados' && initialData?.chamado_id) {
@@ -426,12 +452,11 @@ const payload: any = {
         }
       }
 
-      const payloadFinal = {
+      payloadFinal = {
         ...payload,
         fotos: uploadedPhotos.length > 0 ? uploadedPhotos : (initialData?.fotos || [])
       };
 
-      const finalId = draftId || offlineId;
 
       if (!navigator.onLine) {
         addToQueue({
@@ -528,7 +553,7 @@ const payload: any = {
               <div className="flex items-center gap-3">
                 <h2 className="text-xl font-black text-slate-900">Registrar Ocorrência</h2>
                 {categoriaLabel && (
-                  <span className="px-3 py-1 bg-indigo-100 text-indigo-700 text-[10px] font-black uppercase tracking-widest rounded-lg">
+                  <span className="px-3 py-1 bg-indigo-100 text-indigo-700 text-xs font-black uppercase tracking-widest rounded-lg">
                     {categoriaLabel === 'maria-da-penha' ? 'Maria da Penha' : categoriaLabel === 'embriaguez' ? 'Embriaguez' : 'Padrão'}
                   </span>
                 )}
@@ -542,7 +567,7 @@ const payload: any = {
                     }`} 
                   />
                 ))}
-                <span className="text-[10px] font-black text-slate-400 uppercase ml-2">Passo {step} de {totalSteps}</span>
+                <span className="text-xs font-black text-slate-400 uppercase ml-2">Passo {step} de {totalSteps}</span>
               </div>
             </div>
           </div>
@@ -564,7 +589,7 @@ const payload: any = {
               <div className="space-y-2">
                 <div className="flex items-center gap-2 text-slate-400">
                    <MapPinCheck className="w-4 h-4" />
-                   <span className="text-[10px] font-black uppercase tracking-widest">Origem do Chamado</span>
+                   <span className="text-xs font-black uppercase tracking-widest">Origem do Chamado</span>
                 </div>
                 <h3 className="text-lg font-black text-slate-900">Origem do Chamado</h3>
                 <p className="text-sm text-slate-500 font-medium">Como esta ocorrência foi reportada?</p>
@@ -574,7 +599,7 @@ const payload: any = {
                 <div className="flex items-center gap-3 p-4 bg-indigo-50 border border-indigo-100 rounded-2xl">
                    <Zap className="w-5 h-5 text-indigo-600" />
                    <div>
-                     <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest leading-none">Origem do Chamado Original</p>
+                     <p className="text-xs font-black text-indigo-400 uppercase tracking-widest leading-none">Origem do Chamado Original</p>
                      <p className="text-sm font-bold text-indigo-900">{initialData.origem}</p>
                    </div>
                 </div>
@@ -599,7 +624,7 @@ const payload: any = {
                         }`}
                       >
                         <p className="text-sm font-black">{o.label}</p>
-                        <p className={`text-[10px] font-medium ${watchOrigem === o.label ? 'text-indigo-100' : 'text-slate-400'}`}>{o.desc}</p>
+                        <p className={`text-xs font-medium ${watchOrigem === o.label ? 'text-indigo-100' : 'text-slate-400'}`}>{o.desc}</p>
                       </button>
                     ))}
                   </div>
@@ -633,7 +658,7 @@ const payload: any = {
               <div className="space-y-2">
                 <div className="flex items-center gap-2 text-slate-400">
                    <ReceiptText className="w-4 h-4" />
-                   <span className="text-[10px] font-black uppercase tracking-widest">Descrição e Natureza</span>
+                   <span className="text-xs font-black uppercase tracking-widest">Descrição e Natureza</span>
                 </div>
                 <h3 className="text-lg font-black text-slate-900">Descrição e Natureza</h3>
                 <p className="text-sm text-slate-500 font-medium">Relate o fato e selecione os enquadramentos legais.</p>
@@ -649,8 +674,8 @@ const payload: any = {
                 />
                 {errors.descricao && <p className="text-xs font-bold text-red-500">{errors.descricao.message}</p>}
                 <div className="flex justify-between items-center px-2">
-                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Autosave ativo (+10 caracteres)</p>
-                  <p className="text-[10px] font-black text-slate-500">{watchDescricao?.length || 0} CARACTERE(S)</p>
+                  <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">Autosave ativo (+10 caracteres)</p>
+                  <p className="text-xs font-black text-slate-500">{watchDescricao?.length || 0} CARACTERE(S)</p>
                 </div>
               </div>
 
@@ -738,7 +763,7 @@ const payload: any = {
                     <div className="absolute top-0 left-0 w-2 h-full bg-indigo-600" />
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest">
                           {isEmbriaguez && index === 0 ? 'Nome do Condutor' : 'Nome Completo'}
                         </label>
                         <input 
@@ -747,7 +772,7 @@ const payload: any = {
                         />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tipo de Vínculo</label>
+                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Tipo de Vínculo</label>
                         <select 
                           {...register(`envolvidos.${index}.tipo`)}
                           className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-indigo-600/10 outline-none"
@@ -763,7 +788,7 @@ const payload: any = {
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">CPF / CNPJ</label>
+                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest">CPF / CNPJ</label>
                         <input 
                           {...register(`envolvidos.${index}.cpf`)}
                           placeholder="000.000.000-00"
@@ -784,14 +809,14 @@ const payload: any = {
                         />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">RG</label>
+                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest">RG</label>
                         <input 
                           {...register(`envolvidos.${index}.rg`)}
                           className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-600/10 outline-none"
                         />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Gênero</label>
+                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Gênero</label>
                         <select 
                           {...register(`envolvidos.${index}.genero`)}
                           className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-600/10 outline-none"
@@ -806,7 +831,7 @@ const payload: any = {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Telefone de Contato</label>
+                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Telefone de Contato</label>
                         <input 
                           {...register(`envolvidos.${index}.telefone`)}
                           placeholder="(00) 00000-0000"
@@ -814,7 +839,7 @@ const payload: any = {
                         />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Descrição Física (Altura, Peso, Sinais)</label>
+                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Descrição Física (Altura, Peso, Sinais)</label>
                         <input 
                           {...register(`envolvidos.${index}.descricao_fisica`)}
                           placeholder="Ex: Tatuagem braço direito..."
@@ -825,7 +850,7 @@ const payload: any = {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                        <div className="space-y-2">
-                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Declaração / Versão do Fato</label>
+                          <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Declaração / Versão do Fato</label>
                           <textarea 
                             {...register(`envolvidos.${index}.declaracao`)}
                             rows={3}
@@ -833,7 +858,7 @@ const payload: any = {
                           />
                        </div>
                        <div className="space-y-2">
-                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Observações Extras</label>
+                          <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Observações Extras</label>
                           <textarea 
                             {...register(`envolvidos.${index}.observacoes`)}
                             rows={3}
@@ -862,7 +887,7 @@ const payload: any = {
                 {fields.length === 0 && (
                   <div className="text-center py-20 bg-slate-50 rounded-[3rem] border-2 border-dashed border-slate-100">
                     <Users className="w-16 h-16 text-slate-200 mx-auto mb-4" />
-                    <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">Nenhum envolvido registrado no evento.</p>
+                    <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">Nenhum envolvido registrado no evento.</p>
                   </div>
                 )}
               </div>
@@ -874,7 +899,7 @@ const payload: any = {
               <div className="space-y-2">
                  <div className="flex items-center gap-2 text-slate-400">
                    <ClipboardList className="w-4 h-4" />
-                   <span className="text-[10px] font-black uppercase tracking-widest">Módulo Técnico</span>
+                   <span className="text-xs font-black uppercase tracking-widest">Módulo Técnico</span>
                 </div>
                 <h3 className="text-lg font-black text-slate-900">Módulo de Constatação de Embriaguez</h3>
                 <p className="text-sm text-slate-500 font-medium">Dados do etilômetro e sinais clínicos observados.</p>
@@ -899,30 +924,30 @@ const payload: any = {
                 {watch('etilometro_realizado') ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 animate-in fade-in">
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Marca <span className="text-red-400">*</span></label>
+                      <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Marca <span className="text-red-400">*</span></label>
                       <input {...register('etilometro_marca')} className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm" placeholder="Ex: Bafômetro Intoxilyzer" />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Nº de Série <span className="text-red-400">*</span></label>
+                      <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Nº de Série <span className="text-red-400">*</span></label>
                       <input {...register('etilometro_serie')} className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm" />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Resultado (mg/L) <span className="text-red-400">*</span></label>
+                      <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Resultado (mg/L) <span className="text-red-400">*</span></label>
                       <input {...register('etilometro_resultado')} type="number" step="0.01" min="0" className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-black text-indigo-600" placeholder="0.00" />
                       {watch('etilometro_resultado') && Number(watch('etilometro_resultado')) >= 0.34 && (
-                        <p className="text-[10px] font-black text-red-500 flex items-center gap-1">
+                        <p className="text-xs font-black text-red-500 flex items-center gap-1">
                           ⚠️ ACIMA DO LIMITE LEGAL (0,34 mg/L) — Possível crime
                         </p>
                       )}
                     </div>
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Validade Calibração <span className="text-red-400">*</span></label>
+                      <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Validade Calibração <span className="text-red-400">*</span></label>
                       <input {...register('etilometro_validade')} type="date" className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm" />
                     </div>
                   </div>
                 ) : (
                   <div className="animate-in fade-in space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest">
                       Motivo da Não Realização do Teste <span className="text-red-400">*</span>
                     </label>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -955,7 +980,7 @@ const payload: any = {
                       />
                     )}
                     {!watch('etilometro_justificativa') && (
-                      <p className="text-[10px] font-bold text-amber-600">Selecione ou descreva o motivo para continuar.</p>
+                      <p className="text-xs font-bold text-amber-600">Selecione ou descreva o motivo para continuar.</p>
                     )}
                   </div>
                 )}
@@ -964,7 +989,7 @@ const payload: any = {
               {/* 5.2 Sinais */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="space-y-4">
-                  <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Aparência</h4>
+                  <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">Aparência</h4>
                   <div className="grid grid-cols-1 gap-2">
                     <Controller
                       name="sinais_aparencia"
@@ -993,7 +1018,7 @@ const payload: any = {
                 </div>
 
                 <div className="space-y-4">
-                  <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Atitude</h4>
+                  <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">Atitude</h4>
                   <div className="grid grid-cols-1 gap-2">
                     <Controller
                       name="sinais_atitude"
@@ -1024,7 +1049,7 @@ const payload: any = {
 
               {/* 5.3 Testes de Equilíbrio */}
               <div className="p-8 bg-indigo-50/30 rounded-[2.5rem] border border-indigo-100 space-y-6">
-                 <h4 className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Testes de Equilíbrio e Coordenação</h4>
+                 <h4 className="text-xs font-black text-indigo-400 uppercase tracking-widest">Testes de Equilíbrio e Coordenação</h4>
                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {[
                       { name: 'Andar em linha reta', key: 'teste_linha_reta' },
@@ -1032,7 +1057,7 @@ const payload: any = {
                       { name: 'Tocar o dedo no nariz', key: 'teste_dedo_nariz' }
                     ].map(t => (
                       <div key={t.key} className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-500 uppercase">{t.name}</label>
+                        <label className="text-xs font-black text-slate-500 uppercase">{t.name}</label>
                         <select {...register(t.key as any)} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs">
                            <option value="">Não realizado</option>
                            <option value="Aprovado">Aprovado</option>
@@ -1051,7 +1076,7 @@ const payload: any = {
                  </div>
                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Admitiu ingestão?</label>
+                      <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Admitiu ingestão?</label>
                       <select {...register('admitiu_ingestao')} className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold">
                          <option value="">Selecione...</option>
                          <option value="Sim">Sim</option>
@@ -1060,11 +1085,11 @@ const payload: any = {
                       </select>
                     </div>
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Quantidade informada</label>
+                      <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Quantidade informada</label>
                       <input {...register('ingestao_quantidade')} placeholder="Ex: 3 latas de cerveja" className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm" />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Há quanto tempo?</label>
+                      <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Há quanto tempo?</label>
                       <input {...register('ingestao_tempo')} placeholder="Ex: 1 hora" className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm" />
                     </div>
                  </div>
@@ -1072,7 +1097,7 @@ const payload: any = {
 
               {/* 5.5 Natureza da Alteração */}
               <div className="space-y-4">
-                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Natureza da Alteração Observada</h4>
+                <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">Natureza da Alteração Observada</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {[
                     { label: 'Álcool', val: 'Álcool' },
@@ -1097,7 +1122,7 @@ const payload: any = {
 
               {/* 5.6 Conclusão */}
               <div className="space-y-4">
-                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Conclusão Técnica do Agente</h4>
+                <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">Conclusão Técnica do Agente</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {[
                     { label: 'Embriaguez confirmada por etilômetro', val: 'confirmada_etilometro' },
@@ -1180,7 +1205,7 @@ const payload: any = {
                     <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
                       <Camera className="w-6 h-6 text-indigo-600" />
                     </div>
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Adicionar Foto</span>
+                    <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Adicionar Foto</span>
                   </label>
                 )}
               </div>
@@ -1276,10 +1301,12 @@ const payload: any = {
                   onClick={() => {
                     setShowSuccessModal(false);
                     onClose();
+                    // Navega para a página de gerenciamento
+                    window.location.href = '/ocorrencias';
                   }}
                   className="w-full py-4 bg-slate-100 text-slate-600 rounded-2xl font-bold text-sm hover:bg-slate-200 transition-all active:scale-95"
                 >
-                  Voltar para Início
+                  Ir para Gerenciar
                 </button>
               </div>
             </div>

@@ -34,25 +34,8 @@ import {
 } from 'recharts';
 
 // ============================================================================
-// CONSTANTES E DADOS ESTÁTICOS (Fora do ciclo de renderização para performance)
+// CORES PARA GRÁFICOS
 // ============================================================================
-
-const CHART_DATA = [
-  { name: 'Seg', valor: 40 },
-  { name: 'Ter', valor: 30 },
-  { name: 'Qua', valor: 65 },
-  { name: 'Qui', valor: 45 },
-  { name: 'Sex', valor: 90 },
-  { name: 'Sab', valor: 110 },
-  { name: 'Dom', valor: 85 },
-];
-
-const PIE_DATA = [
-  { name: 'Trânsito', value: 400 },
-  { name: 'Apoio', value: 300 },
-  { name: 'Patrimonial', value: 300 },
-  { name: 'Escolta', value: 200 },
-];
 
 const COLORS = ['#4F46E5', '#10B981', '#F59E0B', '#F43F5E'];
 
@@ -106,12 +89,135 @@ const ActivityItem = React.memo(({ title, time, type }: any) => {
 export const DashboardGestor = React.memo(({ isVisible }: { isVisible?: boolean }) => {
 
   const { institution } = useAuthStore();
-  const [stats] = useState({
-    ocorrenciasHoje: 12,
-    efetivoAtivo: 45,
-    viaturasEmUso: 8,
-    bairrosAtendidos: 24
+  const [stats, setStats] = useState({
+    ocorrenciasHoje: 0,
+    efetivoAtivo: 0,
+    viaturasEmUso: 0,
+    bairrosAtendidos: 0
   });
+  const [chartData, setChartData] = useState<any[]>([]);
+  const [pieData, setPieData] = useState<any[]>([]);
+  const [atividadesRecentes, setAtividadesRecentes] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!institution?.id) return;
+      try {
+        setLoading(true);
+        const hoje = new Date().toISOString().split('T')[0];
+
+        const { count: ocorrenciasHoje } = await supabase
+          .from('ocorrencias')
+          .select('*', { count: 'exact', head: true })
+          .eq('instituicao_id', institution.id)
+          .gte('created_at', `${hoje}T00:00:00`)
+          .lte('created_at', `${hoje}T23:59:59`);
+
+        const { count: efetivoAtivo } = await supabase
+          .from('profiles')
+          .select('*', { count: 'exact', head: true })
+          .eq('instituicao_id', institution.id)
+          .eq('status', 'ativo');
+
+        const { count: viaturasEmUso } = await supabase
+          .from('viaturas')
+          .select('*', { count: 'exact', head: true })
+          .eq('instituicao_id', institution.id)
+          .eq('status', 'em_patrulhamento');
+
+        const { data: bairros } = await supabase
+          .from('ocorrencias')
+          .select('bairro')
+          .eq('instituicao_id', institution.id)
+          .not('bairro', 'is', null);
+
+        const bairrosUnicos = new Set(bairros?.map(b => b.bairro) || []);
+
+        setStats({
+          ocorrenciasHoje: ocorrenciasHoje || 0,
+          efetivoAtivo: efetivoAtivo || 0,
+          viaturasEmUso: viaturasEmUso || 0,
+          bairrosAtendidos: bairrosUnicos.size
+        });
+
+        const diasSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab'];
+        const chartPromises = Array.from({ length: 7 }, (_, i) => {
+          const data = new Date();
+          data.setDate(data.getDate() - (6 - i));
+          const dataStr = data.toISOString().split('T')[0];
+          return supabase
+            .from('ocorrencias')
+            .select('*', { count: 'exact', head: true })
+            .eq('instituicao_id', institution.id)
+            .gte('created_at', `${dataStr}T00:00:00`)
+            .lte('created_at', `${dataStr}T23:59:59`)
+            .then(({ count }) => ({
+              name: diasSemana[data.getDay()],
+              valor: count || 0
+            }));
+        });
+
+        const chartResult = await Promise.all(chartPromises);
+        setChartData(chartResult);
+
+        const { data: ocorrenciasNatureza } = await supabase
+          .from('ocorrencias')
+          .select('natureza')
+          .eq('instituicao_id', institution.id)
+          .not('natureza', 'is', null);
+
+        const naturezaCount: Record<string, number> = {};
+        ocorrenciasNatureza?.forEach((o: any) => {
+          naturezaCount[o.natureza] = (naturezaCount[o.natureza] || 0) + 1;
+        });
+
+        const pieResult = Object.entries(naturezaCount)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 4)
+          .map(([name, value]) => ({ name, value }));
+
+        setPieData(pieResult.length > 0 ? pieResult : []);
+
+        const { data: logs } = await supabase
+          .from('logs')
+          .select('*, profiles(nome, perfil_acesso)')
+          .eq('instituicao_id', institution.id)
+          .order('created_at', { ascending: false })
+          .limit(5);
+
+        const tipoMap: Record<string, string> = {
+          'ocorrencia': 'ocorrencia',
+          'viatura': 'viatura',
+          'equipe': 'equipe',
+          'alerta': 'alerta'
+        };
+
+        setAtividadesRecentes(
+          (logs || []).map((log: any) => ({
+            title: log.descricao || 'Atividade registrada',
+            time: new Date(log.created_at).toLocaleString('pt-BR'),
+            type: tipoMap[log.tipo] || 'ocorrencia'
+          }))
+        );
+
+      } catch (error) {
+        console.error('Erro ao carregar dashboard:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [institution?.id]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-10 animate-in fade-in slide-in-from-bottom-6 duration-700 pb-20">

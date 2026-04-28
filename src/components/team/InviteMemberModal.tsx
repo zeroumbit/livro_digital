@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Mail, UserPlus, Loader2, Shield, Phone } from 'lucide-react';
+import { X, Mail, UserPlus, Loader2, Shield, Phone, ChevronDown } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 
 interface InviteMemberModalProps {
@@ -11,33 +11,25 @@ interface InviteMemberModalProps {
 
 const ACCESS_PROFILES = [
   { value: 'gestor', label: 'Gestor' },
-  { value: 'operador', label: 'Operador' },
-  { value: 'agente', label: 'Agente' },
+  { value: 'comandante_geral', label: 'Comandante Geral' },
+  { value: 'chefe_equipe', label: 'Chefe de Equipe' },
+  { value: 'gcm', label: 'GCM' },
+  { value: 'operador_radio', label: 'Operador de Rádio' },
+  { value: 'gestor_financeiro', label: 'Gestor Financeiro' },
+  { value: 'administrativo', label: 'Administrativo' },
 ];
 
-const PATENTES = [
-  { value: 'Coronel', label: 'Coronel' },
-  { value: 'Tenente-Coronel', label: 'Tenente-Coronel' },
-  { value: 'Major', label: 'Major' },
-  { value: 'Capitão', label: 'Capitão' },
-  { value: '1º Tenente', label: '1º Tenente' },
-  { value: '2º Tenente', label: '2º Tenente' },
-  { value: 'Subtenente', label: 'Subtenente' },
-  { value: '1º Sargento', label: '1º Sargento' },
-  { value: '2º Sargento', label: '2º Sargento' },
-  { value: '3º Sargento', label: '3º Sargento' },
-  { value: 'Cabo', label: 'Cabo' },
-  { value: 'Soldado', label: 'Soldado' },
-];
+import { usePatentes } from '@/hooks/useMembers';
 
 export function InviteMemberModal({ isOpen, onClose, onInvite, isLoading = false }: InviteMemberModalProps) {
+  const { data: patentes, isLoading: loadingPatentes } = usePatentes();
   const [formData, setFormData] = useState({
     email: '',
     primeiro_nome: '',
     sobrenome: '',
     telefone: '',
-    perfil_acesso: 'agente',
-    patente: 'Soldado',
+    perfil_acesso: 'gcm',
+    patente: '',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -75,8 +67,8 @@ export function InviteMemberModal({ isOpen, onClose, onInvite, isLoading = false
       primeiro_nome: '',
       sobrenome: '',
       telefone: '',
-      perfil_acesso: 'agente',
-      patente: 'Soldado',
+      perfil_acesso: 'gcm',
+      patente: '',
     });
     setErrors({});
     onClose();
@@ -165,34 +157,39 @@ export function InviteMemberModal({ isOpen, onClose, onInvite, isLoading = false
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Perfil de Acesso</label>
-              <div className="relative">
-                <Shield className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <div className="space-y-1.5">
+              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Perfil de Acesso</label>
+              <div className="relative group">
+                <Shield className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-indigo-600 transition-colors pointer-events-none" />
                 <select
                   value={formData.perfil_acesso}
                   onChange={(e) => setFormData({ ...formData, perfil_acesso: e.target.value })}
-                  className="w-full h-12 pl-10 pr-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium focus:ring-4 focus:ring-indigo-600/5 focus:border-indigo-600 transition-all appearance-none"
+                  className="w-full h-12 pl-10 pr-10 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-700 focus:ring-4 focus:ring-indigo-600/5 focus:border-indigo-600 transition-all appearance-none cursor-pointer hover:bg-white"
                   disabled={isLoading}
                 >
                   {ACCESS_PROFILES.map(profile => (
                     <option key={profile.value} value={profile.value}>{profile.label}</option>
                   ))}
                 </select>
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none group-focus-within:rotate-180 transition-transform" />
               </div>
             </div>
-            <div>
-              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Patente</label>
-              <select
-                value={formData.patente}
-                onChange={(e) => setFormData({ ...formData, patente: e.target.value })}
-                className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium focus:ring-4 focus:ring-indigo-600/5 focus:border-indigo-600 transition-all appearance-none"
-                disabled={isLoading}
-              >
-                {PATENTES.map(patente => (
-                  <option key={patente.value} value={patente.value}>{patente.label}</option>
-                ))}
-              </select>
+            <div className="space-y-1.5">
+              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Patente</label>
+              <div className="relative group">
+                <select
+                  value={formData.patente}
+                  onChange={(e) => setFormData({ ...formData, patente: e.target.value })}
+                  className="w-full h-12 px-4 pr-10 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-700 focus:ring-4 focus:ring-indigo-600/5 focus:border-indigo-600 transition-all appearance-none cursor-pointer hover:bg-white"
+                  disabled={isLoading || loadingPatentes}
+                >
+                  <option value="" disabled>Selecione uma patente</option>
+                  {patentes?.map(patente => (
+                    <option key={patente.id} value={patente.nome}>{patente.nome}</option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none group-focus-within:rotate-180 transition-transform" />
+              </div>
             </div>
           </div>
         </div>

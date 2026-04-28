@@ -19,6 +19,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { useMembers, useInviteMember, useDeleteMember, useToggleMemberStatus } from '@/hooks/useMembers';
+import { useAuthStore } from '@/store/useAuthStore';
 import { DropdownMenu } from '@/components/ui/DropdownMenu';
 import { MemberProfileModal } from '@/components/team/MemberProfileModal';
 import { InviteMemberModal } from '@/components/team/InviteMemberModal';
@@ -38,12 +39,16 @@ export function EquipesPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [memberToDelete, setMemberToDelete] = useState<any>(null);
 
+  const profile = useAuthStore(state => state.profile);
   const { data: members, isLoading, error } = useMembers();
   const inviteMember = useInviteMember();
   const deleteMember = useDeleteMember();
   const toggleStatus = useToggleMemberStatus();
 
   const filteredMembers = members?.filter(member => {
+    // Não mostrar o próprio gestor na lista de equipe
+    if (member.id === profile?.id) return false;
+
     const fullName = `${member.primeiro_nome} ${member.sobrenome}`.toLowerCase();
     const searchLower = searchTerm.toLowerCase();
     return fullName.includes(searchLower) ||
