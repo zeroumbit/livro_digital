@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Mail, UserPlus, Loader2, Shield, Phone, ChevronDown, Badge, User } from 'lucide-react';
+import { X, Mail, UserPlus, Loader2, Shield, Phone, ChevronDown, Badge, User, Lock, Eye, EyeOff } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { usePatentes } from '@/hooks/useUsuarios';
 
@@ -15,12 +15,15 @@ interface UsuarioModalProps {
     patente: string;
     matricula: string;
     funcao_operacional: string;
+    senha?: string;
   }) => void;
   usuario?: any | null;
   isLoading?: boolean;
 }
 
 const ACCESS_PROFILES = [
+  { value: 'secretario', label: 'Secretário' },
+  { value: 'gestor', label: 'Gestor' },
   { value: 'comandante_geral', label: 'Comandante Geral' },
   { value: 'chefe_equipe', label: 'Chefe de Equipe' },
   { value: 'gcm', label: 'GCM' },
@@ -32,6 +35,7 @@ const ACCESS_PROFILES = [
 export function UsuarioModal({ isOpen, onClose, onSubmit, usuario, isLoading = false }: UsuarioModalProps) {
   const { data: patentes, isLoading: loadingPatentes } = usePatentes();
   
+  const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     primeiro_nome: '',
@@ -41,6 +45,7 @@ export function UsuarioModal({ isOpen, onClose, onSubmit, usuario, isLoading = f
     patente: '',
     matricula: '',
     funcao_operacional: '',
+    senha: '',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -56,6 +61,7 @@ export function UsuarioModal({ isOpen, onClose, onSubmit, usuario, isLoading = f
         patente: usuario.patente || '',
         matricula: usuario.matricula || '',
         funcao_operacional: usuario.funcao_operacional || '',
+        senha: '',
       });
     } else {
       setFormData({
@@ -67,6 +73,7 @@ export function UsuarioModal({ isOpen, onClose, onSubmit, usuario, isLoading = f
         patente: '',
         matricula: '',
         funcao_operacional: '',
+        senha: '',
       });
     }
     setErrors({});
@@ -89,6 +96,16 @@ export function UsuarioModal({ isOpen, onClose, onSubmit, usuario, isLoading = f
       newErrors.sobrenome = 'Sobrenome é obrigatório';
     }
 
+    if (formData.telefone && formData.telefone.replace(/\D/g, '').length < 10) {
+      newErrors.telefone = 'Telefone inválido';
+    }
+    
+    if (!usuario && !formData.senha.trim()) {
+      newErrors.senha = 'Senha é obrigatória para novos usuários';
+    } else if (!usuario && formData.senha.length < 6) {
+      newErrors.senha = 'A senha deve ter pelo menos 6 caracteres';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -102,6 +119,14 @@ export function UsuarioModal({ isOpen, onClose, onSubmit, usuario, isLoading = f
   const handleClose = () => {
     setErrors({});
     onClose();
+  };
+
+  const maskPhone = (value: string) => {
+    return value
+      .replace(/\D/g, '')
+      .replace(/(\d{2})(\d)/, '($1) $2')
+      .replace(/(\d{5})(\d)/, '$1-$2')
+      .replace(/(-\d{4})\d+?$/, '$1');
   };
 
   if (!isOpen) return null;
@@ -175,6 +200,31 @@ export function UsuarioModal({ isOpen, onClose, onSubmit, usuario, isLoading = f
             {errors.email && <p className="text-xs text-red-500 mt-1 font-medium">{errors.email}</p>}
           </div>
 
+          {!usuario && (
+            <div>
+              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Senha de Acesso *</label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={formData.senha}
+                  onChange={(e) => setFormData({ ...formData, senha: e.target.value })}
+                  className={`w-full h-12 pl-10 pr-12 bg-slate-50 border ${errors.senha ? 'border-red-300' : 'border-slate-200'} rounded-2xl text-sm font-medium focus:ring-4 focus:ring-indigo-600/5 focus:border-indigo-600 transition-all`}
+                  placeholder="Mínimo 6 caracteres"
+                  disabled={isLoading}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 hover:bg-slate-200 rounded-lg text-slate-400 hover:text-slate-600 transition-all"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              {errors.senha && <p className="text-xs text-red-500 mt-1 font-medium">{errors.senha}</p>}
+            </div>
+          )}
+
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Telefone</label>
@@ -183,12 +233,13 @@ export function UsuarioModal({ isOpen, onClose, onSubmit, usuario, isLoading = f
                 <input
                   type="tel"
                   value={formData.telefone}
-                  onChange={(e) => setFormData({ ...formData, telefone: e.target.value })}
-                  className="w-full h-12 pl-10 pr-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium focus:ring-4 focus:ring-indigo-600/5 focus:border-indigo-600 transition-all"
+                  onChange={(e) => setFormData({ ...formData, telefone: maskPhone(e.target.value) })}
+                  className={`w-full h-12 pl-10 pr-4 bg-slate-50 border ${errors.telefone ? 'border-red-300' : 'border-slate-200'} rounded-2xl text-sm font-medium focus:ring-4 focus:ring-indigo-600/5 focus:border-indigo-600 transition-all`}
                   placeholder="(00) 00000-0000"
                   disabled={isLoading}
                 />
               </div>
+              {errors.telefone && <p className="text-xs text-red-500 mt-1 font-medium">{errors.telefone}</p>}
             </div>
             <div>
               <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Matrícula (RE)</label>

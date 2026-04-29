@@ -4,6 +4,7 @@ import { AuthLayout } from '@/layouts/AuthLayout';
 import { DashboardLayout } from '@/layouts/DashboardLayout';
 import SuperAdminLayout from '@/layouts/SuperAdminLayout';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
+import { useAuthStore } from '@/store/useAuthStore';
 
 // Componente de preload para cache instantâneo
 const PreloadLink = ({ to }: { to: string }) => {
@@ -60,6 +61,18 @@ const UsuariosPage = createLazy(() => import('@/pages/dashboard/UsuariosPage').t
   const Page = ({ children }: { children: React.ReactNode }) => (
     <Suspense fallback={<LoadingScreen minimal />}>{children}</Suspense>
   );
+
+  // Protetor de Rota por Cargo
+  const RoleProtected = ({ children, roles }: { children: React.ReactNode, roles: string[] }) => {
+    const { profile } = useAuthStore();
+    const isAllowed = roles.includes(profile?.perfil_acesso || '');
+    
+    if (!isAllowed) {
+      return <Navigate to="/dashboard" replace />;
+    }
+    
+    return <>{children}</>;
+  };
 
   export const router = createBrowserRouter([
     {
@@ -152,91 +165,91 @@ const UsuariosPage = createLazy(() => import('@/pages/dashboard/UsuariosPage').t
       // Operações - Páginas Isoladas por Tipo
       {
         path: '/ocorrencias',
-        element: <Page><OcorrenciasPage categoria="padrao" title="Ocorrências Padrão" /></Page>,
+        element: <RoleProtected roles={['secretario', 'gestor', 'comandante_geral', 'gcm', 'chefe_equipe', 'operador_radio']}><Page><OcorrenciasPadraoPage /></Page></RoleProtected>,
       },
       {
         path: '/ocorrencias/embriaguez',
-        element: <Page><OcorrenciasPage categoria="embriaguez" title="Operação Embriaguez" /></Page>,
+        element: <RoleProtected roles={['secretario', 'gestor', 'comandante_geral', 'gcm', 'chefe_equipe', 'operador_radio']}><Page><EmbriaguezPage /></Page></RoleProtected>,
       },
       {
         path: '/ocorrencias/maria-da-penha',
-        element: <Page><OcorrenciasPage categoria="maria_da_penha" title="Patrulha Maria da Penha" /></Page>,
+        element: <RoleProtected roles={['secretario', 'gestor', 'comandante_geral', 'gcm', 'chefe_equipe', 'operador_radio']}><Page><MariaDaPenhaPage /></Page></RoleProtected>,
       },
       {
         path: '/ocorrencias/chamados',
-        element: <Page><ChamadosOcorrenciasPage /></Page>,
+        element: <RoleProtected roles={['secretario', 'gestor', 'comandante_geral', 'gcm', 'chefe_equipe', 'operador_radio']}><Page><ChamadosOcorrenciasPage /></Page></RoleProtected>,
       },
       {
         path: '/chamados',
-        element: <Page><ChamadosPage /></Page>,
+        element: <RoleProtected roles={['secretario', 'gestor', 'comandante_geral', 'gcm', 'chefe_equipe', 'operador_radio']}><Page><ChamadosPage /></Page></RoleProtected>,
       },
 
       // Veículos
       {
         path: '/veiculos',
-        element: <Page><VeiculosPage /></Page>,
+        element: <RoleProtected roles={['secretario', 'gestor', 'comandante_geral', 'administrativo', 'gcm', 'chefe_equipe']}><Page><VeiculosPage /></Page></RoleProtected>,
       },
       {
         path: '/veiculos/km',
-        element: <Page><KmDiarioPage /></Page>,
+        element: <RoleProtected roles={['secretario', 'gestor', 'comandante_geral', 'administrativo', 'gcm', 'chefe_equipe']}><Page><KmDiarioPage /></Page></RoleProtected>,
       },
       {
         path: '/veiculos/vistorias',
-        element: <Page><VistoriasPage /></Page>,
+        element: <RoleProtected roles={['secretario', 'gestor', 'comandante_geral', 'administrativo', 'gcm', 'chefe_equipe']}><Page><VistoriasPage /></Page></RoleProtected>,
       },
       {
         path: '/veiculos/vincular',
-        element: <Page><VincularViaturaPage /></Page>,
+        element: <RoleProtected roles={['secretario', 'gestor', 'comandante_geral', 'administrativo', 'gcm', 'chefe_equipe']}><Page><VincularViaturaPage /></Page></RoleProtected>,
       },
       // Combustível
       {
         path: '/combustivel',
-        element: <Page><CombustivelDashboardPage /></Page>,
+        element: <RoleProtected roles={['secretario', 'gestor', 'administrativo', 'gestor_financeiro']}><Page><CombustivelDashboardPage /></Page></RoleProtected>,
       },
       {
         path: '/combustivel/alertas',
-        element: <Page><AlertasCombustivelPage /></Page>,
+        element: <RoleProtected roles={['secretario', 'gestor', 'administrativo', 'gestor_financeiro']}><Page><AlertasCombustivelPage /></Page></RoleProtected>,
       },
       {
         path: '/combustivel/abastecimento',
-        element: <Page><AbastecimentoPage /></Page>,
+        element: <RoleProtected roles={['secretario', 'gestor', 'administrativo', 'gestor_financeiro']}><Page><AbastecimentoPage /></Page></RoleProtected>,
       },
       {
         path: '/combustivel/mural',
-        element: <Page><MuralCombustivelPage /></Page>,
+        element: <RoleProtected roles={['secretario', 'gestor', 'administrativo', 'gestor_financeiro']}><Page><MuralCombustivelPage /></Page></RoleProtected>,
       },
       {
         path: '/combustivel/vitorias',
-        element: <Page><VitoriasPage /></Page>,
+        element: <RoleProtected roles={['secretario', 'gestor', 'administrativo', 'gestor_financeiro']}><Page><VitoriasPage /></Page></RoleProtected>,
       },
       // Outros
       {
         path: '/equipes',
-        element: <Page><EquipesPage /></Page>,
+        element: <RoleProtected roles={['secretario', 'gestor', 'comandante_geral', 'administrativo']}><Page><EquipesPage /></Page></RoleProtected>,
       },
       {
         path: '/escalas',
-        element: <Page><EscalasPage /></Page>,
+        element: <RoleProtected roles={['secretario', 'gestor', 'comandante_geral', 'administrativo', 'chefe_equipe']}><Page><EscalasPage /></Page></RoleProtected>,
       },
       {
         path: '/relatorios',
-        element: <div className="p-8"><h1 className="text-3xl font-black">Relatórios Gerenciais</h1></div>,
+        element: <RoleProtected roles={['secretario', 'gestor', 'comandante_geral', 'gestor_financeiro']}><div className="p-8"><h1 className="text-3xl font-black">Relatórios Gerenciais</h1></div></RoleProtected>,
       },
       {
         path: '/usuarios',
-        element: <Page><UsuariosPage /></Page>,
+        element: <RoleProtected roles={['secretario', 'gestor', 'administrativo']}><Page><UsuariosPage /></Page></RoleProtected>,
       },
        {
          path: '/instituicao',
-         element: <Page><InstituicaoPage /></Page>,
+         element: <RoleProtected roles={['secretario', 'gestor']}><Page><InstituicaoPage /></Page></RoleProtected>,
        },
       {
         path: '/configuracoes',
-        element: <Page><ConfiguracoesPage /></Page>,
+        element: <RoleProtected roles={['secretario', 'gestor']}><Page><ConfiguracoesPage /></Page></RoleProtected>,
       },
       {
         path: '/auditoria',
-        element: <div className="p-8"><h1 className="text-3xl font-black">Logs de Auditoria</h1></div>,
+        element: <RoleProtected roles={['secretario', 'gestor']}><div className="p-8"><h1 className="text-3xl font-black">Logs de Auditoria</h1></div></RoleProtected>,
       },
       // Sobre Mim
       {

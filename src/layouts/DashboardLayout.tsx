@@ -61,12 +61,12 @@ const managerNavGroups: NavGroup[] = [
   {
     group: "Operacional",
     items: [
-      { label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard', roles: ['gestor', 'comando', 'gcm', 'administrativo'] },
+      { label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard', roles: ['secretario', 'gestor', 'comandante_geral', 'gcm', 'administrativo', 'chefe_equipe', 'operador_radio', 'gestor_financeiro'] },
       { 
         label: 'Operações', 
         icon: FileText, 
         module: 'ocorrencias',
-        roles: ['gestor', 'comando', 'gcm'],
+        roles: ['secretario', 'gestor', 'comandante_geral', 'gcm', 'chefe_equipe', 'operador_radio'],
         subItems: [
           { label: 'Ocorrências', path: '/ocorrencias' },
           { label: 'Chamados', path: '/chamados' },
@@ -74,8 +74,8 @@ const managerNavGroups: NavGroup[] = [
           { label: 'Maria da Penha', path: '/ocorrencias/maria-da-penha' },
         ]
       },
-      { label: 'Equipes', icon: Users, path: '/equipes', module: 'equipes', roles: ['gestor', 'comando'] },
-      { label: 'Escalas', icon: Calendar, path: '/escalas', module: 'escalas', roles: ['gestor', 'comando', 'administrativo'] },
+      { label: 'Equipes', icon: Users, path: '/equipes', module: 'equipes', roles: ['secretario', 'gestor', 'comandante_geral', 'administrativo'] },
+      { label: 'Escalas', icon: Calendar, path: '/escalas', module: 'escalas', roles: ['secretario', 'gestor', 'comandante_geral', 'administrativo', 'chefe_equipe'] },
     ]
   },
   {
@@ -85,7 +85,7 @@ const managerNavGroups: NavGroup[] = [
         label: 'Veículos', 
         icon: Truck, 
         module: 'veiculos',
-        roles: ['gestor', 'comando', 'administrativo', 'gcm'],
+        roles: ['secretario', 'gestor', 'comandante_geral', 'administrativo', 'gcm', 'chefe_equipe'],
         subItems: [
           { label: 'Frota', path: '/veiculos' },
           { label: 'KM Diário', path: '/veiculos/km' },
@@ -97,7 +97,7 @@ const managerNavGroups: NavGroup[] = [
         label: 'Combustível', 
         icon: Fuel, 
         module: 'combustivel',
-        roles: ['gestor', 'administrativo'],
+        roles: ['secretario', 'gestor', 'administrativo', 'gestor_financeiro'],
         subItems: [
           { label: 'Dashboard', path: '/combustivel' },
           { label: 'Alertas', path: '/combustivel/alertas' },
@@ -111,19 +111,19 @@ const managerNavGroups: NavGroup[] = [
   {
       group: "Relatórios & Admin",
       items: [
-          { label: 'Relatórios', icon: BarChart3, path: '/relatorios', module: 'relatorios', roles: ['gestor', 'comando'] },
-          { label: 'Usuários', icon: Shield, path: '/usuarios', module: 'administrativo', roles: ['gestor'] },
-          { label: 'Configurações', icon: Settings, path: '/configuracoes', module: 'administrativo', roles: ['gestor'] },
-          { label: 'Auditoria', icon: History, path: '/auditoria', module: 'administrativo', roles: ['gestor'] },
+          { label: 'Relatórios', icon: BarChart3, path: '/relatorios', module: 'relatorios', roles: ['secretario', 'gestor', 'comandante_geral', 'gestor_financeiro'] },
+          { label: 'Usuários', icon: Shield, path: '/usuarios', module: 'administrativo', roles: ['secretario', 'gestor', 'administrativo'] },
+          { label: 'Configurações', icon: Settings, path: '/configuracoes', module: 'administrativo', roles: ['secretario', 'gestor'] },
+          { label: 'Auditoria', icon: History, path: '/auditoria', module: 'administrativo', roles: ['secretario', 'gestor'] },
       ]
   },
   {
     group: "Sobre Mim",
     items: [
-      { label: 'Minha Equipe', icon: Users, path: '/me/equipe', roles: ['gcm', 'comando', 'gestor'] },
-      { label: 'Minha Escala', icon: Calendar, path: '/me/escala', roles: ['gcm', 'comando', 'gestor', 'administrativo'] },
-      { label: 'Meu Perfil', icon: User, path: '/me/perfil', roles: ['gcm', 'comando', 'gestor', 'administrativo'] },
-       { label: 'Instituição', icon: Building2, path: '/instituicao', roles: ['gestor'] },
+      { label: 'Minha Equipe', icon: Users, path: '/me/equipe', roles: ['secretario', 'gcm', 'comandante_geral', 'gestor', 'chefe_equipe'] },
+      { label: 'Minha Escala', icon: Calendar, path: '/me/escala', roles: ['secretario', 'gcm', 'comandante_geral', 'gestor', 'administrativo', 'chefe_equipe', 'operador_radio'] },
+      { label: 'Meu Perfil', icon: User, path: '/me/perfil', roles: ['secretario', 'gcm', 'comandante_geral', 'gestor', 'administrativo', 'chefe_equipe', 'operador_radio', 'gestor_financeiro'] },
+       { label: 'Instituição', icon: Building2, path: '/instituicao', roles: ['secretario', 'gestor'] },
     ]
   }
 ];

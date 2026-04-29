@@ -82,13 +82,14 @@ export const useCreateUsuario = () => {
       patente: string;
       matricula: string;
       funcao_operacional: string;
+      senha?: string;
     }) => {
       const profile = useAuthStore.getState().profile;
       
       if (!profile?.instituicao_id) throw new Error('Instituição não encontrada');
       
-      // Gerar senha temporária
-      const tempPassword = Math.random().toString(36).slice(-8) + 'A1!';
+      // Gerar senha temporária ou usar a fornecida
+      const tempPassword = data.senha || (Math.random().toString(36).slice(-8) + 'A1!');
       
       // Chamar Edge Function para criar usuário no Auth (usa Service Role)
       const { data: functionData, error: functionError } = await supabase.functions.invoke('create-user', {
@@ -104,30 +105,17 @@ export const useCreateUsuario = () => {
         }
       });
       
-      if (functionError) throw functionError;
-      
-      const authUserId = functionData?.user?.id;
-      if (!authUserId) throw new Error('Falha ao criar usuário no Auth');
-      
-      // Inserir na tabela usuarios com o ID do Auth
-      const { error } = await supabase
-        .from('usuarios')
-        .insert([{
-          id: authUserId,
-          instituicao_id: profile.instituicao_id,
-          email: data.email,
-          primeiro_nome: data.primeiro_nome,
-          sobrenome: data.sobrenome,
-          telefone: data.telefone,
-          perfil_acesso: data.perfil_acesso,
-          patente: data.patente,
-          matricula: data.matricula,
-          funcao_operacional: data.funcao_operacional,
-          status: 'ativo',
-        }]);
-      
-      if (error) {
-        throw error;
+      if (functionError) {
+        // Tentar extrair mensagem real do corpo da resposta
+        const msg = (functionError as any)?.context?.error ||
+                    (functionData as any)?.error ||
+                    functionError.message ||
+                    'Erro ao criar usuário';
+        throw new Error(msg);
+      }
+
+      if (functionData?.error) {
+        throw new Error(functionData.error);
       }
       
       return { tempPassword };

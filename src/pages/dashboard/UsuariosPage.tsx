@@ -25,6 +25,7 @@ import { DropdownMenu } from '@/components/ui/DropdownMenu';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { UsuarioModal } from '@/components/usuarios/UsuarioModal';
 import { UsuarioProfileModal } from '@/components/usuarios/UsuarioProfileModal';
+import toast from 'react-hot-toast';
 
 export function UsuariosPage() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -87,7 +88,24 @@ export function UsuariosPage() {
       });
     } else {
       createUsuario.mutate(data, {
-        onSuccess: () => setIsModalOpen(false)
+        onSuccess: () => {
+          setIsModalOpen(false);
+          toast.success('Usuário criado com sucesso! Ele já pode fazer login com as credenciais definidas.', {
+            duration: 6000,
+          });
+        },
+        onError: (err: any) => {
+          const msg = err?.message || 'Erro ao criar usuário';
+          // Mensagens comuns do Supabase Auth em português
+          const translated = msg.includes('already registered') || msg.includes('already been registered')
+            ? 'Este e-mail já está cadastrado no sistema.'
+            : msg.includes('Password should be at least')
+            ? 'A senha deve ter pelo menos 6 caracteres.'
+            : msg.includes('Unable to validate email')
+            ? 'E-mail inválido.'
+            : msg;
+          toast.error(translated, { duration: 6000 });
+        }
       });
     }
   };

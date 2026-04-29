@@ -263,13 +263,29 @@ export const DashboardGestor = React.memo(({ isVisible }: { isVisible?: boolean 
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
           <div className="flex items-center space-x-3 mb-2">
-            <span className="px-3 py-1 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest rounded-full">Operação Ativa</span>
+            <span className="px-3 py-1 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest rounded-full">
+              {profile?.perfil_acesso?.replace('_', ' ')}
+            </span>
             <span className="text-slate-400 font-bold text-[10px] uppercase tracking-widest flex items-center">
               <Clock className="w-3 h-3 mr-1.5" /> Atualizado há 2 min
             </span>
           </div>
-          <h1 className="text-4xl font-black text-slate-900 tracking-tight">Painel de Comando</h1>
-          <p className="text-slate-500 font-medium text-lg mt-1">{institution?.razao_social}</p>
+          <h1 className="text-4xl font-black text-slate-900 tracking-tight">
+            {profile?.perfil_acesso === 'gcm' ? 'Minha Atividade' : 
+             profile?.perfil_acesso === 'operador_radio' ? 'Central de Rádio' :
+             profile?.perfil_acesso === 'gestor_financeiro' ? 'Gestão Financeira' :
+             profile?.perfil_acesso === 'chefe_equipe' ? 'Comando de Equipe' :
+             profile?.perfil_acesso === 'administrativo' ? 'Gestão Administrativa' :
+             'Painel de Comando'}
+          </h1>
+          <p className="text-slate-500 font-medium text-lg mt-1">
+            {profile?.perfil_acesso === 'gcm' ? 'Resumo das suas operações e registros' : 
+             profile?.perfil_acesso === 'operador_radio' ? 'Monitoramento de chamados e despacho' :
+             profile?.perfil_acesso === 'gestor_financeiro' ? 'Controle de custos e combustível' :
+             profile?.perfil_acesso === 'chefe_equipe' ? 'Supervisão de membros e viaturas' :
+             profile?.perfil_acesso === 'administrativo' ? 'Controle de escalas e efetivo' :
+             institution?.razao_social}
+          </p>
         </div>
         
         <div className="flex items-center space-x-4">
@@ -277,41 +293,69 @@ export const DashboardGestor = React.memo(({ isVisible }: { isVisible?: boolean 
                 <Download className="w-4 h-4 mr-2" /> Exportar PDF
              </button>
              <button className="h-12 px-6 bg-slate-900 text-white rounded-2xl flex items-center text-sm font-bold shadow-lg shadow-slate-900/10 hover:bg-slate-800 transition-all hover:-translate-y-1">
-                <Activity className="w-4 h-4 mr-2" /> Monitoramento em Tempo Real
+                <Activity className="w-4 h-4 mr-2" /> 
+                {profile?.perfil_acesso === 'operador_radio' ? 'Despachar Viatura' : 
+                 profile?.perfil_acesso === 'gcm' ? 'Nova Ocorrência' : 'Monitoramento em Tempo Real'}
              </button>
         </div>
       </div>
 
-      {/* CARDS DE ESTATÍSTICAS FUNDAMENTAIS */}
+      {/* CARDS DE ESTATÍSTICAS FUNDAMENTAIS (BASEADOS NO PERFIL) */}
        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-         <StatCard
-           title="Ocorrências / 24h"
-           value={stats.ocorrenciasHoje}
-           subValue="Registradas hoje"
-           icon={FileText}
-           color="indigo"
-         />
-         <StatCard
-           title="Efetivo Ativo"
-           value={stats.efetivoAtivo}
-           subValue="Membros ativos"
-           icon={Users}
-           color="emerald"
-         />
-         <StatCard
-           title="Frota em Patrulhamento"
-           value={stats.viaturasEmUso}
-           subValue="Viaturas em uso"
-           icon={Truck}
-           color="amber"
-         />
-         <StatCard
-           title="Bairros Atendidos"
-           value={stats.bairrosAtendidos}
-           subValue="Com ocorrências"
-           icon={MapPin}
-           color="slate"
-         />
+         {profile?.perfil_acesso === 'gestor_financeiro' ? (
+           <>
+             <StatCard title="Gasto Mensal" value="R$ 12.450" subValue="Combustível" icon={Fuel} color="indigo" />
+             <StatCard title="Média Consumo" value="10.2" subValue="km/L Global" icon={TrendingUp} color="emerald" />
+             <StatCard title="Alertas" value="03" subValue="Abastecimentos Suspeitos" icon={AlertCircle} color="rose" />
+             <StatCard title="Notas Fiscais" value="42" subValue="Pendente Conferência" icon={FileText} color="amber" />
+           </>
+         ) : profile?.perfil_acesso === 'operador_radio' ? (
+           <>
+             <StatCard title="Chamados Abertos" value="08" subValue="Aguardando Despacho" icon={FileText} color="rose" />
+             <StatCard title="Viaturas Livres" value="04" subValue="Em patrulhamento" icon={Truck} color="emerald" />
+             <StatCard title="Prioridade Alta" value="02" subValue="Em andamento" icon={AlertCircle} color="amber" />
+             <StatCard title="Tempo Médio" value="12m" subValue="Resposta inicial" icon={Clock} color="indigo" />
+           </>
+         ) : profile?.perfil_acesso === 'administrativo' ? (
+           <>
+             <StatCard title="Agentes Escalados" value={stats.efetivoAtivo} subValue="Para hoje" icon={Calendar} color="indigo" />
+             <StatCard title="Trocas de Escala" value="05" subValue="Pendentes" icon={Activity} color="amber" />
+             <StatCard title="Viaturas OK" value={stats.viaturasEmUso} subValue="Disponíveis" icon={Truck} color="emerald" />
+             <StatCard title="Novos Usuários" value="02" subValue="Últimos 7 dias" icon={Users} color="slate" />
+           </>
+         ) : (
+           <>
+             <StatCard
+               title={profile?.perfil_acesso === 'gcm' ? "Minhas Ocorrências" : 
+                      profile?.perfil_acesso === 'chefe_equipe' ? "Ocorrências da Equipe" : "Ocorrências / 24h"}
+               value={stats.ocorrenciasHoje}
+               subValue="Registradas hoje"
+               icon={FileText}
+               color="indigo"
+             />
+             <StatCard
+               title={profile?.perfil_acesso === 'chefe_equipe' ? "Membros Equipe" : "Efetivo Ativo"}
+               value={stats.efetivoAtivo}
+               subValue="Em serviço"
+               icon={Users}
+               color="emerald"
+             />
+             <StatCard
+               title="Viaturas Ativas"
+               value={stats.viaturasEmUso}
+               subValue="Em patrulhamento"
+               icon={Truck}
+               color="amber"
+             />
+             <StatCard
+               title="Bairros Atendidos"
+               value={stats.bairrosAtendidos}
+               subValue="Cobertura total"
+               icon={MapPin}
+               color="slate"
+             />
+           </>
+         )}
        </div>
 
       {/* SEÇÃO GRÁFICOS E ATIVIDADE */}

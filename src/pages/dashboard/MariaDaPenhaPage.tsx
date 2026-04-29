@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { 
-  Plus, Search, Eye, Trash2, Edit2, Loader2, 
+  Plus, Search, Eye, Trash2, Pencil, Loader2, 
   AlertCircle, ShieldAlert, MapPin, User, Calendar,
   ChevronRight
 } from 'lucide-react';
@@ -35,11 +35,11 @@ export function MariaDaPenhaPage() {
     
     return ocorrencias.filter(occ => {
       const matchesSearch = !searchTerm || 
-        occ.endereco_rua?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        occ.natureza?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        occ.nome_vitima?.toLowerCase().includes(searchTerm.toLowerCase());
+        occ.rua?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        occ.natureza?.some((n: string) => n.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        occ.vitima_nome?.toLowerCase().includes(searchTerm.toLowerCase());
       
-      const matchesStatus = statusFilter === 'todos' || occ.status_ocorrencia === statusFilter;
+      const matchesStatus = statusFilter === 'todos' || occ.status === statusFilter;
       
       return matchesSearch && matchesStatus;
     });
@@ -123,89 +123,105 @@ export function MariaDaPenhaPage() {
         </div>
       </div>
 
-      {/* LISTA */}
-      {filteredOccurrences.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 bg-white border border-slate-200 rounded-[2.5rem] shadow-sm text-slate-400">
-          <ShieldAlert className="w-16 h-16 mb-4 opacity-20" />
-          <p className="text-lg font-black tracking-tight">Nenhuma ocorrência Maria da Penha</p>
-          <p className="text-sm font-medium">Crie uma nova ocorrência deste tipo.</p>
+      {/* TABELA DE OCORRÊNCIAS */}
+      <div className="bg-white border border-slate-200 rounded-[2.5rem] shadow-sm overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-slate-50/50 border-b border-slate-100">
+                <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Protocolo</th>
+                <th className="px-6 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Vítima</th>
+                <th className="px-6 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Endereço</th>
+                <th className="px-6 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Natureza</th>
+                <th className="px-6 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Risco</th>
+                <th className="px-6 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</th>
+                <th className="px-8 py-6 text-right"></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-50">
+              {filteredOccurrences.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="p-20 text-center">
+                    <div className="flex flex-col items-center justify-center text-slate-400">
+                      <ShieldAlert className="w-16 h-16 mb-4 opacity-20" />
+                      <p className="text-lg font-black tracking-tight">Nenhuma ocorrência encontrada</p>
+                      <p className="text-sm font-medium">Tente ajustar sua busca ou criar uma nova.</p>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                filteredOccurrences.map((ocorrencia) => (
+                  <tr key={ocorrencia.id} className="hover:bg-slate-50/50 transition-colors group">
+                    <td className="px-8 py-6">
+                      <span className="font-black text-indigo-600">#{ocorrencia.id.slice(0, 8)}</span>
+                    </td>
+                    <td className="px-6 py-6">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-600">
+                          <User className="w-4 h-4" />
+                        </div>
+                        <span className="font-bold text-slate-700">{ocorrencia.vitima_nome || 'Não informado'}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-6">
+                      <div className="flex items-center gap-2 text-slate-600 max-w-[200px]">
+                        <MapPin className="w-4 h-4 shrink-0 text-slate-400" />
+                        <span className="truncate font-medium">{ocorrencia.rua || 'Sem endereço'}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-6 text-slate-600 font-medium">{ocorrencia.natureza || '---'}</td>
+                    <td className="px-6 py-6">
+                      <span className={`px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border ${
+                        ocorrencia.nivel_risco === 'Elevado' 
+                          ? 'bg-rose-50 text-rose-600 border-rose-100' 
+                          : 'bg-slate-50 text-slate-500 border-slate-100'
+                      }`}>
+                        {ocorrencia.nivel_risco || 'Não avaliado'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-6">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-2 h-2 rounded-full ${ocorrencia.status === 'finalizada' ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                        <span className={`text-[10px] font-black uppercase tracking-widest ${ocorrencia.status === 'finalizada' ? 'text-emerald-600' : 'text-amber-600'}`}>
+                          {ocorrencia.status}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-8 py-6 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => { setSelectedOccurrence(ocorrencia); setIsDetailsOpen(true); }}
+                          className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center hover:bg-indigo-100 transition-all"
+                          title="Visualizar Detalhes"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => { setEditingOccurrence(ocorrencia); setIsFormOpen(true); }}
+                          className="w-10 h-10 bg-slate-50 text-slate-600 rounded-xl flex items-center justify-center hover:bg-slate-100 transition-all"
+                          title="Editar"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            setOccurrenceToDelete(ocorrencia.id);
+                            setShowDeleteDialog(true);
+                          }}
+                          className="w-10 h-10 bg-rose-50 text-rose-600 rounded-xl flex items-center justify-center hover:bg-rose-100 transition-all"
+                          title="Excluir"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
-      ) : (
-        <div className="space-y-4">
-          {filteredOccurrences.map((ocorrencia) => (
-            <div key={ocorrencia.id} className="bg-white rounded-[2.5rem] border border-purple-100 shadow-sm hover:shadow-xl transition-all p-6 relative">
-              <div className="absolute top-4 right-4 flex gap-2">
-                <button
-                  onClick={() => { setSelectedOccurrence(ocorrencia); setIsDetailsOpen(true); }}
-                  className="p-2 hover:bg-slate-50 rounded-xl text-slate-400 hover:text-indigo-600 transition-colors"
-                  title="Ver Detalhes"
-                >
-                  <Eye className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => { setEditingOccurrence(ocorrencia); setIsFormOpen(true); }}
-                  className="p-2 hover:bg-indigo-50 rounded-xl text-slate-400 hover:text-indigo-600 transition-colors"
-                >
-                  <Edit2 className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => {
-                    setOccurrenceToDelete(ocorrencia.id);
-                    setShowDeleteDialog(true);
-                  }}
-                  className="p-2 hover:bg-rose-50 rounded-xl text-slate-400 hover:text-rose-600 transition-colors"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className={`w-3 h-3 rounded-full ${ocorrencia.status === 'finalizada' ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-                  <span className="text-xs font-black uppercase tracking-widest text-purple-600">
-                    {ocorrencia.status}
-                  </span>
-                </div>
-                <span className="text-xs text-slate-400">
-                  {formatDistanceToNow(new Date(ocorrencia.created_at), { addSuffix: true, locale: ptBR })}
-                </span>
-              </div>
-
-              <h3 className="text-lg font-black text-slate-900 mb-2">
-                <User className="w-4 h-4 inline mr-2 text-slate-400" />
-                {ocorrencia.vitima_nome || 'Vítima não informada'}
-              </h3>
-
-              <div className="flex items-center gap-4 mb-4 text-sm text-slate-500">
-                <span>
-                  <MapPin className="w-3 h-3 inline mr-1" />
-                  {ocorrencia.rua || 'Sem endereço'}
-                </span>
-                <span>
-                  <Calendar className="w-3 h-3 inline mr-1" />
-                  {ocorrencia.natureza || 'Sem natureza'}
-                </span>
-              </div>
-
-              <p className="text-sm text-slate-500 line-clamp-2">{ocorrencia.descricao}</p>
-              
-              <div className="mt-4 pt-4 border-t border-slate-50 flex items-center justify-between">
-                <span className={`text-[10px] font-black uppercase tracking-widest ${
-                  ocorrencia.nivel_risco === 'Elevado' ? 'text-rose-600' : 'text-slate-400'
-                }`}>
-                  Risco: {ocorrencia.nivel_risco || 'Não avaliado'}
-                </span>
-                <button 
-                  onClick={() => { setSelectedOccurrence(ocorrencia); setIsDetailsOpen(true); }}
-                  className="text-xs font-black text-indigo-600 uppercase tracking-widest hover:underline"
-                >
-                  Ver Detalhes
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+      </div>
 
       {/* MODAL DETAILS */}
       <MariaDaPenhaDetails
