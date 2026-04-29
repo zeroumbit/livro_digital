@@ -101,6 +101,10 @@ export const useCreateUsuario = () => {
             sobrenome: data.sobrenome,
             perfil_acesso: data.perfil_acesso,
             instituicao_id: profile.instituicao_id,
+            telefone: data.telefone,
+            matricula: data.matricula,
+            patente: data.patente,
+            funcao_operacional: data.funcao_operacional,
           }
         }
       });
