@@ -1,8 +1,25 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+const STORE_KEY = 'ofs-queue-x1';
+
+const simpleEncrypt = (data: string): string => {
+  const key = STORE_KEY;
+  return btoa(data.split('').map((c, i) => String.fromCharCode(c.charCodeAt(0) ^ key.charCodeAt(i % key.length))).join(''));
+};
+
+const simpleDecrypt = (data: string): string => {
+  try {
+    const key = STORE_KEY;
+    const decoded = atob(data);
+    return decoded.split('').map((c, i) => String.fromCharCode(c.charCodeAt(0) ^ key.charCodeAt(i % key.length))).join('');
+  } catch {
+    return data;
+  }
+};
+
 export interface PendingSync {
-  id: string; // Client-side UUID
+  id: string;
   tableName: string;
   data: any;
   action: 'insert' | 'update';
@@ -28,15 +45,14 @@ export const useOfflineStore = create<OfflineState>()(
     (set) => ({
       queue: [],
       isOnline: typeof navigator !== 'undefined' ? navigator.onLine : true,
-      
+
       addToQueue: (item) => set((state) => {
-        // Prevent duplicates for the same ID
         const filtered = state.queue.filter(q => q.id !== item.id);
-        return { 
-          queue: [...filtered, { ...item, timestamp: Date.now() }] 
+        return {
+          queue: [...filtered, { ...item, timestamp: Date.now() }]
         };
       }),
-      
+
       removeFromQueue: (id) => set((state) => ({
         queue: state.queue.filter(q => q.id !== id)
       })),
@@ -49,6 +65,26 @@ export const useOfflineStore = create<OfflineState>()(
     }),
     {
       name: 'offline-sync-queue',
+      storage: {
+        getItem: (name) => {
+          const str = localStorage.getItem(name);
+          if (!str) return null;
+          try {
+            const parsed = JSON.parse(str);
+            if (parsed.state) {
+              parsed.state = JSON.parse(simpleDecrypt(parsed.state));
+            }
+            return parsed;
+          } catch {
+            return null;
+          }
+        },
+        setItem: (name, value) => {
+          const encrypted = simpleEncrypt(JSON.stringify(value.state));
+          localStorage.setItem(name, JSON.stringify({ state: encrypted }));
+        },
+        removeItem: (name) => localStorage.removeItem(name),
+      },
     }
   )
 );

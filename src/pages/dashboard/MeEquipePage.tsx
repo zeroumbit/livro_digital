@@ -73,7 +73,9 @@ export function MeEquipePage() {
         <div>
           <h1 className="text-3xl lg:text-4xl font-black text-slate-900 tracking-tight">Minha Equipe</h1>
           <p className="text-slate-500 font-medium text-lg mt-1">
-            {team ? `Equipe ${team.nome}` : 'Você ainda não está vinculado a uma equipe'}
+            {team ? `Equipe ${team.nome}` : 
+             profile?.perfil_acesso === 'administrativo' ? 'Perfil administrativo (sem equipe vinculada)' :
+             'Você ainda não está vinculado a uma equipe'}
           </p>
         </div>
       </div>
@@ -167,10 +169,18 @@ export function MeEquipePage() {
       {!team ? (
         <div className="flex flex-col items-center justify-center py-20 bg-white border border-slate-200 rounded-[2.5rem] shadow-sm text-slate-400">
           <Building2 className="w-16 h-16 mb-4 opacity-20" />
-          <p className="text-lg font-black tracking-tight text-slate-600">Nenhuma equipe encontrada</p>
-          <p className="text-sm font-medium mt-1">Você ainda não foi vinculado a uma equipe.</p>
+          <p className="text-lg font-black tracking-tight text-slate-600">
+            {profile?.perfil_acesso === 'administrativo' ? 'Páginas de Equipes não se aplicam' : 'Nenhuma equipe encontrada'}
+          </p>
+          <p className="text-sm font-medium mt-1">
+            {profile?.perfil_acesso === 'administrativo' 
+              ? 'Como perfil administrativo, você atua de forma transversal e não pertence a uma equipe operacional.' 
+              : 'Você ainda não foi vinculado a uma equipe.'}
+          </p>
           <p className="text-xs text-slate-400 mt-4 max-w-md text-center">
-            Entre em contato com o comando ou gestor da sua unidade para ser alocado em uma equipe de trabalho.
+            {profile?.perfil_acesso === 'administrativo'
+              ? 'Você ainda pode ser visualizado em escalas de serviço, mas não possui membros de equipe fixos.'
+              : 'Entre em contato com o comando ou gestor da sua unidade para ser alocado em uma equipe de trabalho.'}
           </p>
         </div>
       ) : filteredMembers.length === 0 ? (

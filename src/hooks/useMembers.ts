@@ -88,34 +88,57 @@ export const useUpdateMember = () => {
 
 export const useInviteMember = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (data: {
       email: string;
+      senha: string;
       primeiro_nome: string;
       sobrenome: string;
-      telefone: string;
       perfil_acesso: string;
       patente: string;
     }) => {
       const profile = useAuthStore.getState().profile;
-      
+
       if (!profile?.instituicao_id) throw new Error('Instituição não encontrada');
-      
-      const { error } = await supabase
+
+      // 1. Cria o usuário no Supabase Auth com a senha definida pelo gestor.
+      //    Os metadados são lidos pelo trigger `handle_new_user` para popular `usuarios`.
+      const { data: authData, error: signUpError } = await supabase.auth.signUp({
+        email: data.email,
+        password: data.senha,
+        options: {
+          data: {
+            primeiro_nome: data.primeiro_nome,
+            sobrenome: data.sobrenome,
+            perfil_acesso: data.perfil_acesso,
+            patente: data.patente,
+            // Passa instituicao_id para o trigger poder associar sem precisar criar instituição
+            instituicao_id: profile.instituicao_id,
+          },
+        },
+      });
+
+      if (signUpError) throw signUpError;
+
+      const newUserId = authData.user?.id;
+      if (!newUserId) throw new Error('Falha ao obter ID do novo usuário.');
+
+      // 2. Garante que o registro em `usuarios` tem os dados completos.
+      //    O trigger pode ter criado com instituicao_id NULL, então forçamos a atualização.
+      const { error: updateError } = await supabase
         .from('usuarios')
-        .insert([{
+        .update({
           instituicao_id: profile.instituicao_id,
-          email: data.email,
           primeiro_nome: data.primeiro_nome,
           sobrenome: data.sobrenome,
-          telefone: data.telefone,
           perfil_acesso: data.perfil_acesso,
           patente: data.patente,
           status: 'ativo',
-        }]);
-      
-      if (error) throw error;
+        })
+        .eq('id', newUserId);
+
+      if (updateError) throw updateError;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['members'] });

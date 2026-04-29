@@ -32,16 +32,14 @@ export const useMyTeam = () => {
         .from('escala_agentes')
         .select(`
           equipe_id,
-          equipes!inner(
+          equipe:equipes(
             id,
             nome,
-            descricao,
             instituicao_id,
             created_at
           )
         `)
         .eq('usuario_id', profile.id)
-        .not('equipe_id', 'is', null)
         .limit(1);
 
       if (escalaError) throw escalaError;
@@ -50,8 +48,8 @@ export const useMyTeam = () => {
       let userTeam: TeamInfo | null = null;
       let isLeader = false;
 
-      if (escalaAgentes && escalaAgentes.length > 0 && escalaAgentes[0].equipe) {
-        userTeam = escalaAgentes[0].equipe as unknown as TeamInfo;
+      if (escalaAgentes && escalaAgentes.length > 0 && (escalaAgentes[0] as any).equipe) {
+        userTeam = (escalaAgentes[0] as any).equipe as unknown as TeamInfo;
         
         // Verificar se o usuário é líder baseado no perfil_acesso
         // Perfis que podem ser líderes: comando, chefe_equipe
@@ -66,7 +64,7 @@ export const useMyTeam = () => {
         const { data: teamMembers, error: membersError } = await supabase
           .from('escala_agentes')
           .select(`
-            usuarios!inner(*)
+            usuario:usuario_id(*)
           `)
           .eq('equipe_id', userTeam.id);
 
@@ -81,6 +79,6 @@ export const useMyTeam = () => {
 
       return { team: userTeam, members, isLeader };
     },
-    enabled: !!profile?.id && !!profile?.instituicao_id,
+    enabled: !!profile?.id && !!profile?.instituicao_id && profile.perfil_acesso !== 'administrativo',
   });
 };

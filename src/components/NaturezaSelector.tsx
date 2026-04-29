@@ -5,6 +5,7 @@ interface NaturezaSelectorProps {
   selected: string[];
   onChange: (naturezas: string[]) => void;
   limitToEmbriaguez?: boolean;
+  limitToMariaDaPenha?: boolean;
   lockedItems?: string[]; // Itens que não podem ser removidos
 }
 
@@ -26,7 +27,8 @@ const naturezas = [
       'Pessoa em Perigo Iminente',
       'Tentativa de Suicídio',
       'Incêndio/Explosão',
-      'Desabamento/Deslizamento'
+      'Desabamento/Deslizamento',
+      'Violência Doméstica'
     ]
   },
   {
@@ -85,7 +87,7 @@ const naturezas = [
 ];
 
 
-export function NaturezaSelector({ selected, onChange, limitToEmbriaguez, lockedItems = [] }: NaturezaSelectorProps) {
+export function NaturezaSelector({ selected, onChange, limitToEmbriaguez, limitToMariaDaPenha, lockedItems = [] }: NaturezaSelectorProps) {
   
   // Lista restrita para o módulo de embriaguez conforme solicitado
   const embriaguezNaturezas = [
@@ -100,10 +102,19 @@ export function NaturezaSelector({ selected, onChange, limitToEmbriaguez, locked
     'Atividade Suspeita'
   ];
 
+  const mariaDaPenhaNaturezas = [
+    'Violência Doméstica'
+  ];
+
   const filteredNaturezas = limitToEmbriaguez 
     ? naturezas.map(group => ({
         ...group,
         items: group.items.filter(item => embriaguezNaturezas.includes(item))
+      })).filter(group => group.items.length > 0)
+    : limitToMariaDaPenha
+    ? naturezas.map(group => ({
+        ...group,
+        items: group.items.filter(item => mariaDaPenhaNaturezas.includes(item))
       })).filter(group => group.items.length > 0)
     : naturezas;
 

@@ -1,11 +1,17 @@
 import React, { useState } from 'react';
-import { X, Mail, UserPlus, Loader2, Shield, Phone, ChevronDown } from 'lucide-react';
-import { useAuthStore } from '@/store/useAuthStore';
+import { X, Mail, UserPlus, Loader2, Shield, Eye, EyeOff, Lock, ChevronDown } from 'lucide-react';
 
 interface InviteMemberModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onInvite: (data: { email: string; primeiro_nome: string; sobrenome: string; telefone: string; perfil_acesso: string; patente: string }) => void;
+  onInvite: (data: {
+    email: string;
+    senha: string;
+    primeiro_nome: string;
+    sobrenome: string;
+    perfil_acesso: string;
+    patente: string;
+  }) => void;
   isLoading?: boolean;
 }
 
@@ -23,11 +29,12 @@ import { usePatentes } from '@/hooks/useMembers';
 
 export function InviteMemberModal({ isOpen, onClose, onInvite, isLoading = false }: InviteMemberModalProps) {
   const { data: patentes, isLoading: loadingPatentes } = usePatentes();
+  const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
+    senha: '',
     primeiro_nome: '',
     sobrenome: '',
-    telefone: '',
     perfil_acesso: 'gcm',
     patente: '',
   });
@@ -36,17 +43,23 @@ export function InviteMemberModal({ isOpen, onClose, onInvite, isLoading = false
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
-    
+
     if (!formData.email.trim()) {
       newErrors.email = 'Email é obrigatório';
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = 'Email inválido';
     }
-    
+
+    if (!formData.senha.trim()) {
+      newErrors.senha = 'Senha é obrigatória';
+    } else if (formData.senha.length < 6) {
+      newErrors.senha = 'A senha deve ter pelo menos 6 caracteres';
+    }
+
     if (!formData.primeiro_nome.trim()) {
       newErrors.primeiro_nome = 'Nome é obrigatório';
     }
-    
+
     if (!formData.sobrenome.trim()) {
       newErrors.sobrenome = 'Sobrenome é obrigatório';
     }
@@ -64,13 +77,14 @@ export function InviteMemberModal({ isOpen, onClose, onInvite, isLoading = false
   const handleClose = () => {
     setFormData({
       email: '',
+      senha: '',
       primeiro_nome: '',
       sobrenome: '',
-      telefone: '',
       perfil_acesso: 'gcm',
       patente: '',
     });
     setErrors({});
+    setShowPassword(false);
     onClose();
   };
 
@@ -79,7 +93,7 @@ export function InviteMemberModal({ isOpen, onClose, onInvite, isLoading = false
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md animate-in fade-in duration-300">
       <div className="w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl border border-slate-100 overflow-hidden animate-in zoom-in-95 duration-300">
-          
+
         <div className="relative p-8 pb-6">
           <button
             onClick={handleClose}
@@ -98,6 +112,8 @@ export function InviteMemberModal({ isOpen, onClose, onInvite, isLoading = false
         </div>
 
         <div className="px-8 space-y-4 max-h-[60vh] overflow-y-auto">
+
+          {/* EMAIL */}
           <div>
             <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Email *</label>
             <div className="relative">
@@ -114,6 +130,35 @@ export function InviteMemberModal({ isOpen, onClose, onInvite, isLoading = false
             {errors.email && <p className="text-xs text-red-500 mt-1 font-medium">{errors.email}</p>}
           </div>
 
+          {/* SENHA */}
+          <div>
+            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
+              Senha Inicial *
+            </label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={formData.senha}
+                onChange={(e) => setFormData({ ...formData, senha: e.target.value })}
+                className={`w-full h-12 pl-10 pr-12 bg-slate-50 border ${errors.senha ? 'border-red-300' : 'border-slate-200'} rounded-2xl text-sm font-medium focus:ring-4 focus:ring-indigo-600/5 focus:border-indigo-600 transition-all`}
+                placeholder="Mínimo 6 caracteres"
+                disabled={isLoading}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 transition-colors"
+                disabled={isLoading}
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+            {errors.senha && <p className="text-xs text-red-500 mt-1 font-medium">{errors.senha}</p>}
+            <p className="text-[10px] text-slate-400 mt-1 font-medium">O membro pode alterar a senha após o primeiro acesso.</p>
+          </div>
+
+          {/* NOME + SOBRENOME */}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Nome *</label>
@@ -141,21 +186,7 @@ export function InviteMemberModal({ isOpen, onClose, onInvite, isLoading = false
             </div>
           </div>
 
-          <div>
-            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Telefone</label>
-            <div className="relative">
-              <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <input
-                type="tel"
-                value={formData.telefone}
-                onChange={(e) => setFormData({ ...formData, telefone: e.target.value })}
-                className="w-full h-12 pl-10 pr-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium focus:ring-4 focus:ring-indigo-600/5 focus:border-indigo-600 transition-all"
-                placeholder="(00) 00000-0000"
-                disabled={isLoading}
-              />
-            </div>
-          </div>
-
+          {/* PERFIL + PATENTE */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Perfil de Acesso</label>
@@ -208,7 +239,7 @@ export function InviteMemberModal({ isOpen, onClose, onInvite, isLoading = false
             className="flex-1 px-6 py-4 bg-indigo-600 text-white font-black text-xs uppercase tracking-widest rounded-2xl hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-600/20 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
-            Convidar
+            Criar Acesso
           </button>
         </div>
       </div>

@@ -7,7 +7,6 @@ import {
   MoreVertical,
   Mail,
   Shield,
-  Phone,
   LayoutGrid,
   List,
   ChevronRight,
@@ -62,7 +61,7 @@ export function EquipesPage() {
     setIsProfileOpen(true);
   };
 
-  const handleInvite = (data: { email: string; primeiro_nome: string; sobrenome: string; telefone: string; perfil_acesso: string; patente: string }) => {
+  const handleInvite = (data: { email: string; senha: string; primeiro_nome: string; sobrenome: string; perfil_acesso: string; patente: string }) => {
     inviteMember.mutate(data, {
       onSuccess: () => setIsInviteOpen(false)
     });
@@ -218,13 +217,7 @@ export function EquipesPage() {
                   </div>
                   <span className="font-semibold truncate">{member.email || 'Email pendente'}</span>
                 </div>
-                <div className="flex items-center text-sm text-slate-500 group/item min-w-0 flex-1">
-                  <div className="w-8 h-8 rounded-xl bg-slate-50 flex items-center justify-center mr-3 group-hover/item:text-indigo-600 transition-colors shrink-0">
-                    <Phone className="w-4 h-4" />
-                  </div>
-                  <span className="font-semibold truncate">{member.telefone || 'Sem telefone'}</span>
-                </div>
-                <div className="flex items-center text-sm text-slate-500 group/item min-w-0 flex-1">
+              <div className="flex items-center text-sm text-slate-500 group/item min-w-0 flex-1">
                   <div className="w-8 h-8 rounded-xl bg-slate-50 flex items-center justify-center mr-3 group-hover/item:text-indigo-600 transition-colors shrink-0">
                     <Shield className="w-4 h-4" />
                   </div>

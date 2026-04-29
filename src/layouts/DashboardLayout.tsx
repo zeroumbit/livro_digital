@@ -103,7 +103,7 @@ const managerNavGroups: NavGroup[] = [
           { label: 'Alertas', path: '/combustivel/alertas' },
           { label: 'Abastecimento', path: '/combustivel/abastecimento' },
           { label: 'Mural', path: '/combustivel/mural' },
-          { label: 'Alertas Positivos', path: '/combustivel/vitorias' },
+          { label: 'Vitórias', path: '/combustivel/vitorias' },
         ]
       },
     ]
@@ -120,7 +120,7 @@ const managerNavGroups: NavGroup[] = [
   {
     group: "Sobre Mim",
     items: [
-      { label: 'Minha Equipe', icon: Users, path: '/me/equipe', roles: ['gcm', 'comando', 'gestor', 'administrativo'] },
+      { label: 'Minha Equipe', icon: Users, path: '/me/equipe', roles: ['gcm', 'comando', 'gestor'] },
       { label: 'Minha Escala', icon: Calendar, path: '/me/escala', roles: ['gcm', 'comando', 'gestor', 'administrativo'] },
       { label: 'Meu Perfil', icon: User, path: '/me/perfil', roles: ['gcm', 'comando', 'gestor', 'administrativo'] },
        { label: 'Instituição', icon: Building2, path: '/instituicao', roles: ['gestor'] },
@@ -136,8 +136,9 @@ const SidebarItem = ({ item, allowedModules }: any) => {
   const isActive = item.path ? location.pathname === item.path : item.subItems?.some((si: any) => location.pathname === si.path);
 
   const isGestor = profile?.perfil_acesso === 'gestor';
+  const isAdmin = profile?.perfil_acesso === 'administrativo';
   const roleAllowed = !item.roles || item.roles.includes(profile?.perfil_acesso);
-  const moduleAllowed = !item.module || allowedModules.includes(item.module) || isGestor;
+  const moduleAllowed = !item.module || allowedModules.includes(item.module) || isGestor || isAdmin;
 
   if (!roleAllowed || !moduleAllowed) return null;
 

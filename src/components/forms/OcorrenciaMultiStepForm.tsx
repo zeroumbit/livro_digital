@@ -121,6 +121,7 @@ export function OcorrenciaMultiStepForm({ onClose, onSuccess, initialData, defau
   const { tableName: mainTableName, involvedTableName, foreignKeyName } = getTableConfig(currentCategoria);
 
   const isEmbriaguez = currentCategoria === 'embriaguez';
+  const isMariaDaPenha = currentCategoria === 'maria_da_penha';
   const totalSteps = isEmbriaguez ? 6 : 5;
 
   const [step, setStep] = useState(() => {
@@ -150,7 +151,7 @@ export function OcorrenciaMultiStepForm({ onClose, onSuccess, initialData, defau
       origem: initialData?.origem || (isAgent ? 'EQUIPE' : 'CENTRAL DE RÁDIO'),
       sub_origem: initialData?.sub_origem || '',
       descricao: initialData?.descricao || '',
-      natureza: initialData?.natureza || (isEmbriaguez ? ['Embriaguez em Via Pública'] : []),
+      natureza: initialData?.natureza || (isEmbriaguez ? ['Embriaguez em Via Pública'] : isMariaDaPenha ? ['Violência Doméstica'] : []),
       rua: initialData?.rua || '',
       bairro: initialData?.bairro || '',
       numero: initialData?.numero || '',
@@ -429,8 +430,18 @@ export function OcorrenciaMultiStepForm({ onClose, onSuccess, initialData, defau
       // 1. Upload Photos if any
       if (photos.length > 0) {
         console.log('Iniciando upload de fotos...', photos.length);
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+        const maxSize = 10 * 1024 * 1024; // 10MB
         for (const photo of photos) {
           if (photo.file) {
+            if (!allowedTypes.includes(photo.file.type)) {
+              toast.error(`Arquivo ${photo.file.name} inválido. Use JPG, PNG ou WebP.`);
+              continue;
+            }
+            if (photo.file.size > maxSize) {
+              toast.error(`Arquivo ${photo.file.name} excede 10MB.`);
+              continue;
+            }
             const fileExt = photo.file.name.split('.').pop();
             const fileName = `${crypto.randomUUID()}.${fileExt}`;
             const filePath = `${profile.instituicao_id}/${fileName}`;
@@ -689,7 +700,12 @@ export function OcorrenciaMultiStepForm({ onClose, onSuccess, initialData, defau
                       selected={field.value} 
                       onChange={field.onChange} 
                       limitToEmbriaguez={isEmbriaguez}
-                      lockedItems={isEmbriaguez ? ['Embriaguez em Via Pública'] : []}
+                      limitToMariaDaPenha={isMariaDaPenha}
+                      lockedItems={
+                        isEmbriaguez ? ['Embriaguez em Via Pública'] : 
+                        isMariaDaPenha ? ['Violência Doméstica'] : 
+                        []
+                      }
                     />
                   )}
                 />

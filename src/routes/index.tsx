@@ -9,7 +9,7 @@ import { LoadingScreen } from '@/components/ui/LoadingScreen';
 const PreloadLink = ({ to }: { to: string }) => {
   if (typeof window !== 'undefined') {
     import('@/pages/dashboard/ChamadosPage').catch(() => {});
-    import('@/pages/dashboard/OcorrenciasPage').catch(() => {});
+    import('@/pages/dashboard/OcorrenciasPadraoPage').catch(() => {});
   }
   return null;
 };
@@ -33,7 +33,10 @@ const DashboardGestor = createLazy(() => import('@/pages/dashboard/DashboardGest
 const EquipesPage = createLazy(() => import('@/pages/dashboard/EquipesPage').then(m => ({ default: m.EquipesPage })));
   const InstituicaoPage = createLazy(() => import('@/pages/dashboard/InstituicaoPage').then(m => ({ default: m.InstituicaoPage })));
 const VeiculosPage = createLazy(() => import('@/pages/dashboard/VeiculosPage').then(m => ({ default: m.VeiculosPage })));
-const OcorrenciasPage = createLazy(() => import('@/pages/dashboard/OcorrenciasPage').then(m => ({ default: m.OcorrenciasPage })));
+const OcorrenciasPadraoPage = createLazy(() => import('@/pages/dashboard/OcorrenciasPadraoPage').then(m => ({ default: m.OcorrenciasPadraoPage })));
+const EmbriaguezPage = createLazy(() => import('@/pages/dashboard/EmbriaguezPage').then(m => ({ default: m.EmbriaguezPage })));
+const MariaDaPenhaPage = createLazy(() => import('@/pages/dashboard/MariaDaPenhaPage').then(m => ({ default: m.MariaDaPenhaPage })));
+const ChamadosOcorrenciasPage = createLazy(() => import('@/pages/dashboard/ChamadosOcorrenciasPage').then(m => ({ default: m.ChamadosOcorrenciasPage })));
 const EditOccurrencePage = createLazy(() => import('@/pages/dashboard/EditOccurrencePage').then(m => ({ default: m.EditOccurrencePage })));
 
 const ConfiguracoesPage = createLazy(() => import('@/pages/dashboard/ConfiguracoesPage').then(m => ({ default: m.ConfiguracoesPage })));
@@ -42,31 +45,52 @@ const EscalasPage = createLazy(() => import('@/pages/dashboard/EscalasPage').the
 const CreateOcorrenciaPage = createLazy(() => import('@/pages/dashboard/CreateOcorrenciaPage').then(m => ({ default: m.CreateOcorrenciaPage })));
 const ProfilePage = createLazy(() => import('@/pages/dashboard/ProfilePage').then(m => ({ default: m.ProfilePage })));
 const MeEquipePage = createLazy(() => import('@/pages/dashboard/MeEquipePage').then(m => ({ default: m.MeEquipePage })));
+const MeEscalaPage = createLazy(() => import('@/pages/dashboard/MeEscalaPage').then(m => ({ default: m.MeEscalaPage })));
+const KmDiarioPage = createLazy(() => import('@/pages/dashboard/KmDiarioPage').then(m => ({ default: m.KmDiarioPage })));
+const VistoriasPage = createLazy(() => import('@/pages/dashboard/VistoriasPage').then(m => ({ default: m.VistoriasPage })));
+const VincularViaturaPage = createLazy(() => import('@/pages/dashboard/VincularViaturaPage').then(m => ({ default: m.VincularViaturaPage })));
+const CombustivelDashboardPage = createLazy(() => import('@/pages/dashboard/CombustivelDashboardPage').then(m => ({ default: m.CombustivelDashboardPage })));
+const AbastecimentoPage = createLazy(() => import('@/pages/dashboard/AbastecimentoPage').then(m => ({ default: m.AbastecimentoPage })));
+const MuralCombustivelPage = createLazy(() => import('@/pages/dashboard/MuralCombustivelPage').then(m => ({ default: m.MuralCombustivelPage })));
+const AlertasCombustivelPage = createLazy(() => import('@/pages/dashboard/AlertasCombustivelPage').then(m => ({ default: m.AlertasCombustivelPage })));
+const VitoriasPage = createLazy(() => import('@/pages/dashboard/VitoriasPage').then(m => ({ default: m.VitoriasPage })));
 const UsuariosPage = createLazy(() => import('@/pages/dashboard/UsuariosPage').then(m => ({ default: m.UsuariosPage })));
 
-// Page wrapper com Suspense otimizado
-const Page = ({ children }: { children: React.ReactNode }) => (
-  <Suspense fallback={<LoadingScreen minimal />}>{children}</Suspense>
-);
+  // Page wrapper com Suspense otimizado
+  const Page = ({ children }: { children: React.ReactNode }) => (
+    <Suspense fallback={<LoadingScreen minimal />}>{children}</Suspense>
+  );
 
-export const router = createBrowserRouter([
-  {
-    path: '/',
-    element: <Navigate to="/dashboard" replace />,
-  },
-  {
-    path: '/setup',
-    element: <SetupWizard />,
-  },
-  // Páginas em tela cheia (sem layout)
-  {
-    path: '/criar/ocorrencia/:tipo?',
-    element: <Page><CreateOcorrenciaPage /></Page>,
-  },
-  {
-    path: '/editar/ocorrencia/:id',
-    element: <Page><EditOccurrencePage /></Page>,
-  },
+  export const router = createBrowserRouter([
+    {
+      path: '/',
+      element: <Navigate to="/dashboard" replace />,
+    },
+    {
+      path: '/setup',
+      element: <SetupWizard />,
+    },
+    // Páginas em tela cheia (sem layout) - Edição isolada por tipo
+    {
+      path: '/criar/ocorrencia/:tipo?',
+      element: <Page><CreateOcorrenciaPage /></Page>,
+    },
+    {
+      path: '/editar/ocorrencia/padrao/:id',
+      element: <Page><EditOccurrencePage tipo="padrao" /></Page>,
+    },
+    {
+      path: '/editar/ocorrencia/embriaguez/:id',
+      element: <Page><EditOccurrencePage tipo="embriaguez" /></Page>,
+    },
+    {
+      path: '/editar/ocorrencia/maria-da-penha/:id',
+      element: <Page><EditOccurrencePage tipo="maria_da_penha" /></Page>,
+    },
+    {
+      path: '/editar/ocorrencia/chamados/:id',
+      element: <Page><EditOccurrencePage tipo="chamados" /></Page>,
+    },
   {
     path: '/admin',
     element: <SuperAdminLayout />,
@@ -125,18 +149,14 @@ export const router = createBrowserRouter([
         path: '/dashboard',
         element: <Page><DashboardGestor /></Page>,
       },
-      // Operações (Agrupado)
+      // Operações - Páginas Isoladas por Tipo
       {
         path: '/ocorrencias',
-        element: <Page><OcorrenciasPage /></Page>,
-      },
-      {
-        path: '/chamados',
-        element: <Page><ChamadosPage /></Page>,
+        element: <Page><OcorrenciasPage categoria="padrao" title="Ocorrências Padrão" /></Page>,
       },
       {
         path: '/ocorrencias/embriaguez',
-        element: <Page><OcorrenciasPage categoria="embriaguez" title="Operação Embriaguez ao Volante" /></Page>,
+        element: <Page><OcorrenciasPage categoria="embriaguez" title="Operação Embriaguez" /></Page>,
       },
       {
         path: '/ocorrencias/maria-da-penha',
@@ -144,7 +164,11 @@ export const router = createBrowserRouter([
       },
       {
         path: '/ocorrencias/chamados',
-        element: <Page><OcorrenciasPage categoria="chamados" title="Ocorrências via Central/Chamados" /></Page>,
+        element: <Page><ChamadosOcorrenciasPage /></Page>,
+      },
+      {
+        path: '/chamados',
+        element: <Page><ChamadosPage /></Page>,
       },
 
       // Veículos
@@ -154,36 +178,36 @@ export const router = createBrowserRouter([
       },
       {
         path: '/veiculos/km',
-        element: <div className="p-8"><h1 className="text-3xl font-black">Controle de KM Diário</h1></div>,
+        element: <Page><KmDiarioPage /></Page>,
       },
       {
         path: '/veiculos/vistorias',
-        element: <div className="p-8"><h1 className="text-3xl font-black">Vistorias de Frota</h1></div>,
+        element: <Page><VistoriasPage /></Page>,
       },
       {
         path: '/veiculos/vincular',
-        element: <div className="p-8"><h1 className="text-3xl font-black">Vincular Equipe a Viatura</h1></div>,
+        element: <Page><VincularViaturaPage /></Page>,
       },
       // Combustível
       {
         path: '/combustivel',
-        element: <div className="p-8"><h1 className="text-3xl font-black">Dashboard de Combustível</h1></div>,
+        element: <Page><CombustivelDashboardPage /></Page>,
       },
       {
         path: '/combustivel/alertas',
-        element: <div className="p-8"><h1 className="text-3xl font-black">Alertas de Abastecimento</h1></div>,
+        element: <Page><AlertasCombustivelPage /></Page>,
       },
       {
         path: '/combustivel/abastecimento',
-        element: <div className="p-8"><h1 className="text-3xl font-black">Registro de Abastecimento</h1></div>,
+        element: <Page><AbastecimentoPage /></Page>,
       },
       {
         path: '/combustivel/mural',
-        element: <div className="p-8"><h1 className="text-3xl font-black">Mural de Combustível</h1></div>,
+        element: <Page><MuralCombustivelPage /></Page>,
       },
       {
         path: '/combustivel/vitorias',
-        element: <div className="p-8"><h1 className="text-3xl font-black">Alertas Positivos (Reconhecimento)</h1></div>,
+        element: <Page><VitoriasPage /></Page>,
       },
       // Outros
       {
@@ -221,7 +245,7 @@ export const router = createBrowserRouter([
       },
       {
         path: '/me/escala',
-        element: <div className="p-8"><h1 className="text-3xl font-black">Minha Escala de Serviço</h1></div>,
+        element: <Page><MeEscalaPage /></Page>,
       },
       {
         path: '/me/perfil',

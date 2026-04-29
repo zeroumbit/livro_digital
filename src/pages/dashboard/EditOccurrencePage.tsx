@@ -6,7 +6,11 @@ import { MariaDaPenhaForm } from '@/components/forms/MariaDaPenhaForm';
 import { OriginalLoader } from '@/components/ui/OriginalLoader';
 import { toast } from 'sonner';
 
-export function EditOccurrencePage() {
+interface EditOccurrencePageProps {
+  tipo?: 'padrao' | 'embriaguez' | 'maria_da_penha' | 'chamados';
+}
+
+export function EditOccurrencePage({ tipo = 'padrao' }: EditOccurrencePageProps) {
   const { id } = useParams();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
@@ -16,71 +20,94 @@ export function EditOccurrencePage() {
     async function fetchOccurrence() {
       if (!id) return;
       
-      // Tenta primeiro em ocorrencias padrão
-      let { data, error } = await supabase
-        .from('ocorrencias')
-        .select('*')
-        .eq('id', id)
-        .maybeSingle();
+      let data: any = null;
+      let error: any = null;
+      let tableName = '';
+      let categoria = tipo;
 
-      // Se não encontrar, tenta na tabela de embriaguez
-      if (!data && !error) {
-        const { data: embData, error: embError } = await supabase
-          .from('embriaguez')
+      // Buscar APENAS na tabela correspondente ao tipo
+      if (tipo === 'embriaguez') {
+        tableName = 'embriaguez';
+        const result = await supabase
+          .from(tableName)
           .select('*')
           .eq('id', id)
           .maybeSingle();
-        data = embData;
-        error = embError;
-        if (data) data.categoria = 'embriaguez';
-      }
-
-      // Se ainda não encontrou, tenta em maria_da_penha
-      if (!data && !error) {
-        const { data: mdpData, error: mdpError } = await supabase
-          .from('maria_da_penha')
+        data = result.data;
+        error = result.error;
+      } else if (tipo === 'maria_da_penha') {
+        tableName = 'maria_da_penha';
+        const result = await supabase
+          .from(tableName)
           .select('*')
           .eq('id', id)
           .maybeSingle();
-        data = mdpData;
-        error = mdpError;
-        if (data) data.categoria = 'maria_da_penha';
+        data = result.data;
+        error = result.error;
+      } else if (tipo === 'chamados') {
+        tableName = 'chamados_ocorrencias';
+        const result = await supabase
+          .from(tableName)
+          .select('*')
+          .eq('id', id)
+          .maybeSingle();
+        data = result.data;
+        error = result.error;
+      } else {
+        tableName = 'ocorrencias';
+        const result = await supabase
+          .from(tableName)
+          .select('*')
+          .eq('id', id)
+          .maybeSingle();
+        data = result.data;
+        error = result.error;
       }
 
       if (error || !data) {
-        toast.error('Registro não encontrado');
-        navigate('/ocorrencias');
+        toast.error('Registro não encontrado nesta categoria');
+        navigate(`/ocorrencias${tipo !== 'padrao' ? `/${tipo.replace('_', '-')}` : ''}`);
         return;
       }
 
+      data.categoria = categoria;
       setOccurrence(data);
       setLoading(false);
     }
 
     fetchOccurrence();
-  }, [id, navigate]);
+  }, [id, navigate, tipo]);
 
   if (loading) return <OriginalLoader />;
 
+  // Redirecionar para a página correta após salvar
+  const handleSuccess = () => {
+    toast.success('Ocorrência atualizada com sucesso!');
+    const basePath = `/ocorrencias${tipo !== 'padrao' ? `/${tipo.replace('_', '-')}` : ''}`;
+    navigate(basePath);
+  };
+
   return (
     <div className="min-h-screen bg-slate-100">
-      {occurrence.categoria === 'maria_da_penha' ? (
+      {tipo === 'maria_da_penha' ? (
         <MariaDaPenhaForm
           initialData={occurrence}
-          onClose={() => navigate('/ocorrencias')} 
-          onSuccess={() => {
-            toast.success('Ocorrência atualizada com sucesso!');
-            navigate('/ocorrencias');
-          }} 
+          onClose={() => navigate(`/ocorrencias/maria-da-penha`)} 
+          onSuccess={handleSuccess} 
+        />
+      ) : tipo === 'chamados' ? (
+        <OcorrenciaMultiStepForm 
+          initialData={occurrence}
+          onClose={() => navigate('/ocorrencias/chamados')} 
+          onSuccess={handleSuccess}
+          categoria="chamados"
         />
       ) : (
         <OcorrenciaMultiStepForm 
           initialData={occurrence}
           onClose={() => navigate('/ocorrencias')} 
-          onSuccess={() => {
-            toast.success('Ocorrência atualizada com sucesso!');
-            navigate('/ocorrencias');
-          }} 
+          onSuccess={handleSuccess}
+          categoria={tipo}
         />
       )}
     </div>

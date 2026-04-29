@@ -94,11 +94,10 @@ export function LoginPage() {
         return;
       }
 
-      // Redireciona de acordo com o e-mail (Mestre) ou perfil_acesso salvo em metadata
+      // Redireciona de acordo com o perfil_acesso salvo em metadata
       const profileInfo = authData.user?.user_metadata?.perfil_acesso;
-      const isAdminMaster = data.email === 'zeroumbit@gmail.com';
-      
-      if (isAdminMaster || profileInfo === 'super_admin') {
+
+      if (profileInfo === 'super_admin') {
         navigate('/admin/dashboard');
       } else {
         navigate('/dashboard');

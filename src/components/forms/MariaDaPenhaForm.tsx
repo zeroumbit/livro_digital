@@ -22,7 +22,7 @@ import {
   ClipboardList,
   AlertCircle,
   Zap,
-  ReceiptText
+  FileText as ReceiptText
 } from 'lucide-react';
 
 import { supabase } from '@/lib/supabase';
@@ -35,7 +35,7 @@ const mariaDaPenhaSchema = z.object({
   origem: z.string().min(1, 'Origem é obrigatória'),
   sub_origem: z.string().optional(),
   descricao: z.string().min(10, 'Descrição é obrigatória'),
-  natureza: z.array(z.string()).default(['Violência Doméstica (Aguardando Polícia)']),
+  natureza: z.array(z.string()).default(['Violência Doméstica']),
   
   rua: z.string().min(1, 'Rua é obrigatória'),
   numero: z.string().optional(),
@@ -152,7 +152,7 @@ export function MariaDaPenhaForm({ onClose, onSuccess, initialData }: Props) {
     resolver: zodResolver(mariaDaPenhaSchema),
     defaultValues: {
       origem: initialData?.origem || (isAgent ? 'EQUIPE' : 'CENTRAL DE RÁDIO'),
-      natureza: initialData?.natureza || ['Violência Doméstica (Aguardando Polícia)'],
+      natureza: initialData?.natureza || ['Violência Doméstica'],
       descricao: initialData?.descricao || '',
       ...initialData // spread the rest if available
     }
@@ -201,8 +201,9 @@ export function MariaDaPenhaForm({ onClose, onSuccess, initialData }: Props) {
       criador_id: profile.id,
       status: 'rascunho',
       origem: data.origem,
+      sub_origem: data.sub_origem,
       origem_tipo,
-      natureza: data.natureza?.length ? data.natureza : ['Violência Doméstica (Aguardando Polícia)'],
+      natureza: data.natureza?.length ? data.natureza : ['Violência Doméstica'],
       descricao: data.descricao || 'Ocorrência em rascunho',
       titulo: `Maria da Penha - ${data.vitima_nome || 'Em preenchimento'}`,
       ultimo_passo: step,
@@ -470,7 +471,8 @@ export function MariaDaPenhaForm({ onClose, onSuccess, initialData }: Props) {
                       <NaturezaSelector 
                         selected={field.value} 
                         onChange={field.onChange} 
-                        lockedItems={['Violência Doméstica (Aguardando Polícia)']}
+                        limitToMariaDaPenha={true}
+                        lockedItems={['Violência Doméstica']}
                       />
                     )}
                   />

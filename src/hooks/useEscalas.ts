@@ -177,3 +177,29 @@ export const useAddAgentesEscala = () => {
     },
   });
 };
+
+export const useMyEscala = () => {
+  const profile = useAuthStore(state => state.profile);
+  
+  return useQuery({
+    queryKey: ['my-escala', profile?.id],
+    queryFn: async () => {
+      if (!profile?.id) return null;
+      
+      const { data, error } = await supabase
+        .from('escala_agentes')
+        .select(`
+          *,
+          escala:escala_id(*),
+          equipe:equipe_id(nome)
+        `)
+        .eq('usuario_id', profile.id)
+        .limit(1)
+        .maybeSingle();
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!profile?.id,
+  });
+};

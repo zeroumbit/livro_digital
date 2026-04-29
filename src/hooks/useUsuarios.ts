@@ -87,9 +87,33 @@ export const useCreateUsuario = () => {
       
       if (!profile?.instituicao_id) throw new Error('Instituição não encontrada');
       
+      // Gerar senha temporária
+      const tempPassword = Math.random().toString(36).slice(-8) + 'A1!';
+      
+      // Chamar Edge Function para criar usuário no Auth (usa Service Role)
+      const { data: functionData, error: functionError } = await supabase.functions.invoke('create-user', {
+        body: {
+          email: data.email,
+          password: tempPassword,
+          user_metadata: {
+            primeiro_nome: data.primeiro_nome,
+            sobrenome: data.sobrenome,
+            perfil_acesso: data.perfil_acesso,
+            instituicao_id: profile.instituicao_id,
+          }
+        }
+      });
+      
+      if (functionError) throw functionError;
+      
+      const authUserId = functionData?.user?.id;
+      if (!authUserId) throw new Error('Falha ao criar usuário no Auth');
+      
+      // Inserir na tabela usuarios com o ID do Auth
       const { error } = await supabase
         .from('usuarios')
         .insert([{
+          id: authUserId,
           instituicao_id: profile.instituicao_id,
           email: data.email,
           primeiro_nome: data.primeiro_nome,
@@ -102,7 +126,11 @@ export const useCreateUsuario = () => {
           status: 'ativo',
         }]);
       
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
+      
+      return { tempPassword };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['usuarios'] });
